@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env*.local
+
+# SQLite Database files
+*.db
+*.db-journal
+dev.db
+dev.db-journal
+
+# Build outputs
+dist/
+web-build/
+.expo/
+*.tsbuildinfo
+expo-env.d.ts
+
+# OS & Logs
+.DS_Store
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Native iOS/Android builds
+/mobile/ios
+/mobile/android
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision

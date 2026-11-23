@@ -1,0 +1,285 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  phone                 String                 @unique
+  name                  String
+  pinHash               String
+  status                String                 @default("ACTIVE") // ACTIVE, SUSPENDED, LOCKED
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  accounts              Account[]
+  beneficiaries         Beneficiary[]
+  budgets               Budget[]
+  savingGoals           SavingGoal[]
+  cards                 Card[]
+  notifications         Notification[]
+  agentSessions         AgentSession[]
+  agentActions          AgentAction[]
+  agentApprovals        AgentApproval[]
+  auditLogs             AuditLog[]
+  recurringTransactions RecurringTransaction[]
+  transfers             Transfer[]
+}
+
+model Account {
+  id                    String                 @id @default(uuid())
+  userId                String
+  accountNumber         String                 @unique
+  iban                  String                 @unique
+  accountType           String                 @default("CURRENT") // CURRENT, SAVINGS
+  currency              String                 @default("PKR")
+  balance               Float                  @default(0.0)
+  lockedBalance         Float                  @default(0.0)
+  isDefault             Boolean                @default(false)
+  status                String                 @default("ACTIVE") // ACTIVE, FROZEN, CLOSED
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  ledgerEntries         LedgerEntry[]
+  cards                 Card[]
+  outgoingTransfers     Transfer[]             @relation("SenderAccount")
+  recurringTransactions RecurringTransaction[]
+}
+
+model Transaction {
+  id                  String        @id @default(uuid())
+  accountId           String
+  userId              String
+  amount              Float
+  currency            String        @default("PKR")
+  type                String        // DEBIT, CREDIT
+  category            String        // TRANSFER, FOOD, SHOPPING, BILLS, SALARY, INVESTMENT, UTILITIES, ENTERTAINMENT, OTHER
+  description         String
+  counterpartyName    String?
+  counterpartyAccount String?
+  reference           String        @unique
+  status              String        @default("COMPLETED") // PENDING, COMPLETED, FAILED, REVERSED
+  idempotencyKey      String?       @unique
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  account             Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ledgerEntries       LedgerEntry[]
+}
+
+model LedgerEntry {
+  id            String      @id @default(uuid())
+  transactionId String
+  accountId     String
+  type          String      // DEBIT, CREDIT
+  amount        Float
+  balanceAfter  Float
+  reference     String
+  createdAt     DateTime    @default(now())
+
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account       Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Transfer {
+  id                  String    @id @default(uuid())
+  senderAccountId     String
+  senderUserId        String
+  recipientName       String
+  recipientAccount    String
+  recipientBank       String    @default("FinPilot")
+  amount              Float
+  fee                 Float     @default(0.0)
+  currency            String    @default("PKR")
+  note                String?
+  status              String    @default("COMPLETED") // PENDING, AWAITING_APPROVAL, APPROVED, EXECUTING, COMPLETED, FAILED, REJECTED
+  idempotencyKey      String?   @unique
+  approvalId          String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  senderAccount       Account   @relation("SenderAccount", fields: [senderAccountId], references: [id], onDelete: Cascade)
+  senderUser          User      @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+}
+
+model Beneficiary {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  accountNumber String
+  bankName      String   @default("FinPilot")
+  nickname      String?
+  isFavorite    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Budget {
+  id             String           @id @default(uuid())
+  userId         String
+  month          String           // "2026-11"
+  totalLimit     Float
+  totalSpent     Float            @default(0.0)
+  alertThreshold Float            @default(0.8)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories     BudgetCategory[]
+}
+
+model BudgetCategory {
+  id              String   @id @default(uuid())
+  budgetId        String
+  category        String   // FOOD, SHOPPING, BILLS, ENTERTAINMENT, UTILITIES, OTHER
+  allocatedAmount Float
+  spentAmount     Float    @default(0.0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  budget          Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+}
+
+model SavingGoal {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0.0)
+  deadline      DateTime?
+  category      String   @default("GENERAL")
+  status        String   @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Card {
+  id               String   @id @default(uuid())
+  userId           String
+  accountId        String
+  cardNumberMasked String
+  cardHolderName   String
+  cardType         String   @default("VIRTUAL") // VIRTUAL, PHYSICAL
+  network          String   @default("MASTERCARD")
+  isFrozen         Boolean  @default(false)
+  dailyLimit       Float    @default(100000.0)
+  expiryMonth      Int      @default(12)
+  expiryYear       Int      @default(2028)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account          Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("SYSTEM") // SECURITY, TRANSACTION, AI_AGENT, SYSTEM
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentSession {
+  id        String         @id @default(uuid())
+  userId    String
+  title     String         @default("Financial Copilot Session")
+  status    String         @default("ACTIVE") // ACTIVE, ARCHIVED
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AgentMessage[]
+  actions   AgentAction[]
+}
+
+model AgentMessage {
+  id        String       @id @default(uuid())
+  sessionId String
+  role      String       // USER, ASSISTANT, SYSTEM
+  content   String
+  metadata  String?      // JSON string for workflow details, steps, metrics
+  createdAt DateTime     @default(now())
+
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model AgentAction {
+  id               String         @id @default(uuid())
+  sessionId        String
+  userId           String
+  actionType       String         // TRANSFER, CREATE_BUDGET, CREATE_SAVING_GOAL, FREEZE_CARD, etc.
+  status           String         @default("PLANNED") // PLANNED, VALIDATING, AWAITING_APPROVAL, APPROVED, EXECUTING, COMPLETED, FAILED, REJECTED, EXPIRED, CANCELLED
+  payload          String         // JSON string containing arguments/draft details
+  result           String?        // JSON string containing execution result
+  requiredApproval Boolean        @default(true)
+  expiresAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  session          AgentSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvals        AgentApproval[]
+}
+
+model AgentApproval {
+  id             String      @id @default(uuid())
+  actionId       String
+  userId         String
+  requestedAt    DateTime    @default(now())
+  respondedAt    DateTime?
+  status         String      @default("PENDING") // PENDING, APPROVED, REJECTED, EXPIRED
+  approvalMethod String      @default("PIN")     // PIN, OTP, BIOMETRIC, MANUAL
+  remarks        String?
+  createdAt      DateTime    @default(now())
+
+  action         AgentAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  actorType  String   // USER, AI_AGENT, SYSTEM
+  action     String   // E.g. TRANSFER_EXECUTED, AGENT_PLAN_CREATED, APPROVAL_GRANTED, CARD_FROZEN
+  entityType String   // ACCOUNT, TRANSACTION, AGENT_ACTION, CARD, USER
+  entityId   String?
+  details    String   // JSON string
+  ipAddress  String?  @default("127.0.0.1")
+  userAgent  String?  @default("FinPilot Mobile App")
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model RecurringTransaction {
+  id             String   @id @default(uuid())
+  userId         String
+  accountId      String
+  merchantName   String
+  expectedAmount Float
+  frequency      String   @default("MONTHLY") // WEEKLY, MONTHLY, ANNUAL
+  nextDate       DateTime
+  category       String   @default("SUBSCRIPTION")
+  status         String   @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}

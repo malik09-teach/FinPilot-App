@@ -1,0 +1,19 @@
+{
+  "name": "finpilot-banking-app",
+  "version": "1.0.0",
+  "description": "FinPilot - AI-Powered Agentic Banking Application",
+  "scripts": {
+    "start": "npm --prefix mobile start",
+    "mobile": "npm --prefix mobile start",
+    "mobile:web": "npm --prefix mobile run web",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "backend": "npm --prefix backend run dev",
+    "backend:test": "npm --prefix backend test",
+    "seed": "npm --prefix backend run seed",
+    "dev": "npm --prefix backend run dev"
+  },
+  "keywords": ["finpilot", "banking", "agentic-ai", "expo", "react-native"],
+  "author": "FinPilot Team",
+  "license": "MIT"
+}
