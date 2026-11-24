@@ -15,9 +15,6 @@ import {
   Eye,
   EyeOff,
   Snowflake,
-  Palette,
-  X,
-  Lock,
 } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../theme/colors';
@@ -33,7 +30,6 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
 
   const [activeTab, setActiveTab] = useState<'virtual' | 'physical'>('virtual');
   const [showDetails, setShowDetails] = useState(false);
-  const [showMessiModal, setShowMessiModal] = useState(false);
 
   const isFrozen = card?.isFrozen ?? false;
 
@@ -198,59 +194,7 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
             ios_backgroundColor="#E2E8F0"
           />
         </View>
-
-        {/* 2. Switch to Messi Design Option */}
-        <TouchableOpacity
-          style={styles.optionItem}
-          activeOpacity={0.8}
-          onPress={() => setShowMessiModal(true)}
-        >
-          <View style={styles.optionIconContainer}>
-            <Palette size={23} color="#FA6854" strokeWidth={2.2} />
-          </View>
-          <View style={styles.optionTextContainer}>
-            <View style={styles.titleWithBadge}>
-              <Text style={styles.optionTitle}>Switch to Messi design</Text>
-              <View style={styles.lockedBadge}>
-                <Text style={styles.lockedBadgeText}>Locked</Text>
-              </View>
-            </View>
-            <TouchableOpacity onPress={() => setShowMessiModal(true)}>
-              <Text style={styles.linkText}>How to unlock →</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
       </View>
-
-      {/* How to Unlock Messi Design Modal */}
-      <Modal visible={showMessiModal} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalIconBox}>
-                <Lock size={22} color="#D97706" />
-              </View>
-              <Text style={styles.modalTitle}>Messi Edition Card</Text>
-              <TouchableOpacity onPress={() => setShowMessiModal(false)}>
-                <X size={20} color="#0F172A" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalBodyText}>
-              Unlock the exclusive Sadapay × Lionel Messi holographic titanium debit card by:
-            </Text>
-            <View style={styles.modalRules}>
-              <Text style={styles.ruleItem}>• Completing 5 digital payments with FinPilot</Text>
-              <Text style={styles.ruleItem}>• Inviting 3 friends to join the FinPilot app</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setShowMessiModal(false)}
-            >
-              <Text style={styles.modalCloseBtnText}>Got it</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -463,88 +407,5 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: '#8E9BAE',
     marginTop: 2,
-  },
-  titleWithBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lockedBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-  lockedBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#D97706',
-  },
-  linkText: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#FA6854',
-    marginTop: 3,
-  },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FEF3C7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0F172A',
-    flex: 1,
-    marginLeft: 10,
-  },
-  modalBodyText: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  modalRules: {
-    gap: 8,
-    marginBottom: 20,
-  },
-  ruleItem: {
-    fontSize: 13.5,
-    color: '#64748B',
-  },
-  modalCloseBtn: {
-    backgroundColor: '#FA6854',
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  modalCloseBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
   },
 });
