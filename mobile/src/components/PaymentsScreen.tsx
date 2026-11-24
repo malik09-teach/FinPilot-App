@@ -19,6 +19,7 @@ import {
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useBankStore } from '../store/bank-store';
+import { MobilePaymentsFlow } from './MobilePaymentsFlow';
 
 interface PaymentsScreenProps {
   onOpenSendModal: () => void;
@@ -31,9 +32,11 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
 }) => {
   const { sendTransfer } = useBankStore();
 
+  const [showMobilePayments, setShowMobilePayments] = useState(false);
+
   // Sub-modal state for interactive payment options
   const [activeModal, setActiveModal] = useState<
-    'MOBILE' | 'UTILITIES' | 'GAMEZONE' | 'REQUESTS' | null
+    'UTILITIES' | 'GAMEZONE' | 'REQUESTS' | null
   >(null);
   const [inputNumber, setInputNumber] = useState('');
   const [inputAmount, setInputAmount] = useState('');
@@ -69,6 +72,10 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
     }
   };
 
+  if (showMobilePayments) {
+    return <MobilePaymentsFlow onBack={() => setShowMobilePayments(false)} />;
+  }
+
   return (
     <View style={styles.container}>
       {/* Header Title */}
@@ -81,9 +88,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
           style={styles.optionRow}
           activeOpacity={0.7}
           onPress={() => {
-            setSelectedProvider('Jazz');
-            setInputAmount('1000');
-            setActiveModal('MOBILE');
+            setShowMobilePayments(true);
           }}
         >
           <View style={styles.iconBox}>
@@ -163,7 +168,6 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {activeModal === 'MOBILE' && 'Mobile Top-Up & Bundles'}
                 {activeModal === 'UTILITIES' && 'Pay Utility Bill'}
                 {activeModal === 'GAMEZONE' && 'GameZone Vouchers'}
               </Text>
@@ -180,59 +184,6 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
               </View>
             ) : (
               <ScrollView style={styles.modalBody}>
-                {activeModal === 'MOBILE' && (
-                  <>
-                    <Text style={styles.inputLabel}>Select Network Operator</Text>
-                    <View style={styles.chipRow}>
-                      {['Jazz', 'Telenor', 'Zong', 'Ufone'].map((net) => (
-                        <TouchableOpacity
-                          key={net}
-                          onPress={() => setSelectedProvider(net)}
-                          style={[
-                            styles.providerChip,
-                            selectedProvider === net && styles.providerChipActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.providerText,
-                              selectedProvider === net && styles.providerTextActive,
-                            ]}
-                          >
-                            {net}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                    <Text style={styles.inputLabel}>Mobile Number</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={inputNumber}
-                      onChangeText={setInputNumber}
-                      placeholder="03001234567"
-                      keyboardType="phone-pad"
-                    />
-                    <Text style={styles.inputLabel}>Amount (PKR)</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={inputAmount}
-                      onChangeText={setInputAmount}
-                      placeholder="1000"
-                      keyboardType="numeric"
-                    />
-                    <TouchableOpacity
-                      onPress={() => handlePayService(`${selectedProvider} Mobile Recharge`)}
-                      style={styles.payBtn}
-                    >
-                      {isLoading ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.payBtnText}>Pay Mobile Bill</Text>
-                      )}
-                    </TouchableOpacity>
-                  </>
-                )}
-
                 {activeModal === 'UTILITIES' && (
                   <>
                     <Text style={styles.inputLabel}>Select Utility Company</Text>
