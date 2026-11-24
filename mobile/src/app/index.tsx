@@ -28,6 +28,7 @@ import { AnalyticsModal } from '../components/AnalyticsModal';
 import { BudgetsModal } from '../components/BudgetsModal';
 import { SavingsGoalsModal } from '../components/SavingsGoalsModal';
 import { LoginScreen } from '../components/LoginScreen';
+import { MyCardsScreen } from '../components/MyCardsScreen';
 
 export default function FinPilotMainApp() {
   const {
@@ -40,6 +41,7 @@ export default function FinPilotMainApp() {
   } = useBankStore();
 
   // Modals state
+  const [showCardsScreen, setShowCardsScreen] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiInitialPrompt, setAiInitialPrompt] = useState<string | undefined>(undefined);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -71,6 +73,10 @@ export default function FinPilotMainApp() {
     );
   }
 
+  if (showCardsScreen) {
+    return <MyCardsScreen onBack={() => setShowCardsScreen(false)} />;
+  }
+
   const insets = useSafeAreaInsets();
   const safeTopPadding = Math.max(
     insets.top,
@@ -91,8 +97,8 @@ export default function FinPilotMainApp() {
           >
             {/* Dashboard Cards Row */}
             <View style={styles.cardsRow}>
-              {/* Left Tall Teal Balance Card */}
-              <BalanceCard onPress={() => setShowAnalyticsModal(true)} />
+              {/* Left Tall Teal Balance Card -> Navigates to My Cards */}
+              <BalanceCard onPress={() => setShowCardsScreen(true)} />
 
               {/* Right Column: Load Money & Send & Request */}
               <ActionCards
