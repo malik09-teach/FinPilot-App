@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Delete, Lock, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { api } from '../services/api';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface PinScreenProps {
   visible: boolean;
@@ -84,7 +85,7 @@ export const PinScreen: React.FC<PinScreenProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <AdaptiveModal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <View style={styles.contentCard}>
           {/* Header icon */}
@@ -155,7 +156,7 @@ export const PinScreen: React.FC<PinScreenProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

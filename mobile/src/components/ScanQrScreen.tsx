@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
-  Modal,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { AdaptiveModal } from './AdaptiveModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import {
@@ -275,7 +275,7 @@ export const ScanQrScreen: React.FC<ScanQrScreenProps> = ({ onBackToHome }) => {
   // Helper Modal for Amount Entry & Confirmation
   function renderPaymentModal() {
     return (
-      <Modal visible={!!activeMerchant} animationType="slide" transparent>
+      <AdaptiveModal visible={!!activeMerchant} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalTop}>
@@ -325,7 +325,7 @@ export const ScanQrScreen: React.FC<ScanQrScreenProps> = ({ onBackToHome }) => {
             )}
           </View>
         </View>
-      </Modal>
+      </AdaptiveModal>
     );
   }
 };

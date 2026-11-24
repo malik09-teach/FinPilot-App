@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { AdaptiveModal } from './AdaptiveModal';
 import {
   Sparkles,
   Send,
@@ -165,7 +165,7 @@ export const AiWorkspaceModal: React.FC<AiWorkspaceModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <AdaptiveModal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -325,7 +325,7 @@ export const AiWorkspaceModal: React.FC<AiWorkspaceModalProps> = ({
           requireApiVerification={false}
         />
       </KeyboardAvoidingView>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

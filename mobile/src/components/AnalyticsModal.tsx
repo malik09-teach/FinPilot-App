@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { X, TrendingUp, TrendingDown, PieChart } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { api } from '../services/api';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface AnalyticsModalProps {
   visible: boolean;
@@ -30,7 +31,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({ visible, onClose
   }, [visible]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <AdaptiveModal visible={visible} animationType="slide">
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Financial Analytics</Text>
@@ -101,7 +102,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({ visible, onClose
           </View>
         </ScrollView>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

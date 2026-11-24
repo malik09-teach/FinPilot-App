@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { X, ArrowUpRight, ArrowDownLeft, ShieldCheck, CheckCircle2 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { TransactionItem } from '../store/bank-store';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface TransactionDetailModalProps {
   transaction: TransactionItem | null;
@@ -18,7 +19,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const isDebit = transaction.type === 'DEBIT';
 
   return (
-    <Modal visible={!!transaction} animationType="fade" transparent>
+    <AdaptiveModal visible={!!transaction} animationType="fade" transparent>
       <View style={styles.overlay}>
         <View style={styles.card}>
           {/* Header */}
@@ -111,7 +112,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

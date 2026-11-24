@@ -5,10 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Modal,
   TextInput,
   Alert,
 } from 'react-native';
+import { AdaptiveModal } from './AdaptiveModal';
 import {
   User,
   Mail,
@@ -229,7 +229,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onLockApp }) => {
     if (!activeModal) return null;
 
     return (
-      <Modal visible={!!activeModal} animationType="slide" transparent>
+      <AdaptiveModal visible={!!activeModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -368,7 +368,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onLockApp }) => {
             )}
           </View>
         </View>
-      </Modal>
+      </AdaptiveModal>
     );
   }
 };

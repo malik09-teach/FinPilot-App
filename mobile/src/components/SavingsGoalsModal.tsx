@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { X, Target, Plus, CheckCircle2, Sparkles } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface SavingsGoalsModalProps {
   visible: boolean;
@@ -37,7 +38,7 @@ export const SavingsGoalsModal: React.FC<SavingsGoalsModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <AdaptiveModal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Savings Goals</Text>
@@ -85,7 +86,7 @@ export const SavingsGoalsModal: React.FC<SavingsGoalsModalProps> = ({
           })}
         </ScrollView>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

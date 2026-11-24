@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Modal,
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { AdaptiveModal } from './AdaptiveModal';
 import {
   Smartphone,
   Receipt,
@@ -158,7 +158,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
       </View>
 
       {/* Interactive Sub-Modal for Service Payment */}
-      <Modal visible={!!activeModal} animationType="slide" transparent>
+      <AdaptiveModal visible={!!activeModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -334,7 +334,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
             )}
           </View>
         </View>
-      </Modal>
+      </AdaptiveModal>
     </View>
   );
 };

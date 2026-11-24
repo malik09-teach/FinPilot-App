@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -11,6 +10,7 @@ import {
 import { X, Search, ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useBankStore, TransactionItem } from '../store/bank-store';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface AllTransactionsModalProps {
   visible: boolean;
@@ -40,7 +40,7 @@ export const AllTransactionsModal: React.FC<AllTransactionsModalProps> = ({
   });
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <AdaptiveModal visible={visible} animationType="slide">
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -140,7 +140,7 @@ export const AllTransactionsModal: React.FC<AllTransactionsModalProps> = ({
           )}
         </ScrollView>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

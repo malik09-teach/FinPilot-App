@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -11,6 +10,7 @@ import {
 import { ArrowDown, X, CheckCircle2 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useBankStore } from '../store/bank-store';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface LoadMoneyModalProps {
   visible: boolean;
@@ -49,7 +49,7 @@ export const LoadMoneyModal: React.FC<LoadMoneyModalProps> = ({ visible, onClose
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <AdaptiveModal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={styles.header}>
@@ -118,7 +118,7 @@ export const LoadMoneyModal: React.FC<LoadMoneyModalProps> = ({ visible, onClose
           )}
         </View>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 

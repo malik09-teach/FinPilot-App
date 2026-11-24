@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { X, Sparkles, AlertCircle } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { AdaptiveModal } from './AdaptiveModal';
 
 interface BudgetsModalProps {
   visible: boolean;
@@ -25,7 +26,7 @@ export const BudgetsModal: React.FC<BudgetsModalProps> = ({ visible, onClose }) 
   const spentPercentage = Math.round((budget.totalSpent / budget.totalLimit) * 100);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <AdaptiveModal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Budget Management</Text>
@@ -78,7 +79,7 @@ export const BudgetsModal: React.FC<BudgetsModalProps> = ({ visible, onClose }) 
           </View>
         </ScrollView>
       </View>
-    </Modal>
+    </AdaptiveModal>
   );
 };
 
