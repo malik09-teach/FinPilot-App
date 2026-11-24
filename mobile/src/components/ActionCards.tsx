@@ -15,24 +15,26 @@ export const ActionCards: React.FC<ActionCardsProps> = ({ onLoadMoney, onSendReq
       <TouchableOpacity
         activeOpacity={0.88}
         onPress={onLoadMoney}
-        style={[styles.card, { backgroundColor: colors.blueSecondary }]}
+        style={[styles.card, { backgroundColor: 'rgba(0, 132, 255, 0.92)' }]}
       >
         <View style={styles.iconTopLeft}>
           <ArrowDown size={24} color="#FFFFFF" strokeWidth={2.4} />
         </View>
         <Text style={styles.cardTitle}>Load{'\n'}Money</Text>
+        <View style={styles.iceGlintSheen} />
       </TouchableOpacity>
 
       {/* Bottom: Send & Request Card (Coral) */}
       <TouchableOpacity
         activeOpacity={0.88}
         onPress={onSendRequest}
-        style={[styles.card, { backgroundColor: colors.coralAccent }]}
+        style={[styles.card, { backgroundColor: 'rgba(250, 104, 84, 0.92)' }]}
       >
         <View style={styles.iconTopRight}>
           <ArrowUpRight size={24} color="#FFFFFF" strokeWidth={2.4} />
         </View>
         <Text style={styles.cardTitle}>Send &{'\n'}Request</Text>
+        <View style={styles.iceGlintSheen} />
       </TouchableOpacity>
     </View>
   );
@@ -49,11 +51,25 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.65)',
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    elevation: 5,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  iceGlintSheen: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    pointerEvents: 'none',
   },
   iconTopLeft: {
     alignSelf: 'flex-start',

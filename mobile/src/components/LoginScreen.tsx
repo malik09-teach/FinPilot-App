@@ -216,6 +216,10 @@ const styles = StyleSheet.create({
   keyButton: {
     width: 76,
     height: 60,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },

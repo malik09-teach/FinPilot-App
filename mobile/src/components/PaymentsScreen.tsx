@@ -293,8 +293,8 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF', // Clean full-screen white background
-    paddingHorizontal: 22,
+    backgroundColor: '#EDF5FC', // Clean icy background
+    paddingHorizontal: 20,
     paddingTop: 16,
   },
   sheetTitle: {
@@ -305,7 +305,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   optionsList: {
-    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.88)',
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 3,
   },
   optionRow: {
     flexDirection: 'row',
@@ -316,7 +326,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#FFEBE8', // Exact soft pink/peach rounded square
+    backgroundColor: 'rgba(255, 235, 232, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,

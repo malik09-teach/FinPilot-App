@@ -1,15 +1,22 @@
 export const colors = {
-  // Backgrounds
-  background: '#F6F7F9',
-  cardBackground: '#FFFFFF',
-  surfaceSubtle: '#F1F4F8',
+  // Backgrounds - Icy Frost & Crystal Glass
+  background: '#EDF5FC',        // Crystalline ice tint
+  backgroundFrost: 'rgba(240, 248, 255, 0.85)',
+  cardBackground: 'rgba(255, 255, 255, 0.78)',
+  cardBorder: 'rgba(255, 255, 255, 0.88)',
+  surfaceSubtle: 'rgba(241, 245, 249, 0.75)',
+  glassHighlight: 'rgba(255, 255, 255, 0.95)',
+  iceGlow: 'rgba(56, 189, 248, 0.18)',
 
-  // Primary palette (exact reference image match)
+  // Primary palette (Enhanced with icy luminescence)
   tealPrimary: '#00D494',     // Left balance card
   tealDark: '#00B37E',
+  tealGlass: 'rgba(0, 212, 148, 0.9)',
   blueSecondary: '#0084FF',   // Load money card
   blueDark: '#0066CC',
-  coralAccent: '#FF6B57',     // Send & Request card / active tab
+  blueGlass: 'rgba(0, 132, 255, 0.9)',
+  coralAccent: '#FA6854',     // Send & Request card / active tab
+  coralGlass: 'rgba(250, 104, 84, 0.92)',
   coralLight: '#FFEBE8',      // Transaction icon bg
 
   // Text
@@ -26,6 +33,6 @@ export const colors = {
   purpleAiLight: '#F3E8FF',
 
   // Borders
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
+  border: 'rgba(226, 232, 240, 0.7)',
+  borderLight: 'rgba(241, 245, 249, 0.85)',
 };

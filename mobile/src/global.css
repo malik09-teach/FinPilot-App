@@ -13,9 +13,20 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #0A0E1A;
+  background: radial-gradient(circle at 50% 30%, #0d1b2a 0%, #070d18 70%, #040810 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------------------------------------------------------
+   Ice Glassmorphism & Crystal Theme Styles
+   --------------------------------------------------------- */
+.ice-glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 8px 32px rgba(56, 189, 248, 0.12), 0 1px 3px rgba(255, 255, 255, 0.9) inset !important;
 }
 
 /* Constrain React Native Web Modals strictly to the Centered Phone Emulator Chassis */

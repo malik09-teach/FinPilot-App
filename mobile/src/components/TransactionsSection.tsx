@@ -83,14 +83,16 @@ function formatTransactionTime(dateStr?: string) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    borderRadius: 26,
     padding: 20,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.88)',
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 3,
   },
   headerRow: {
     flexDirection: 'row',
@@ -100,14 +102,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#8E9BAE',
+    fontWeight: '700',
+    color: '#64748B',
     letterSpacing: 0.1,
   },
   seeAllText: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.coralAccent,
+    color: '#FA6854',
   },
   listContainer: {
     gap: 16,
@@ -120,7 +122,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: colors.coralLight,
+    backgroundColor: 'rgba(255, 235, 232, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,

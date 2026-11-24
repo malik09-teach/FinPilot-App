@@ -52,16 +52,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
 const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
     paddingTop: 10,
     paddingBottom: 22,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F4F8',
+    borderTopWidth: 1.5,
+    borderTopColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'space-around',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 8,
   },
   tabButton: {

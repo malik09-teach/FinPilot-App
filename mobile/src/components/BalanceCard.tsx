@@ -55,6 +55,9 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({ onPress }) => {
           <ArrowRight size={22} color="#FFFFFF" strokeWidth={2.4} />
         </View>
       </View>
+
+      {/* Crystal Ice Glint Accent */}
+      <View style={styles.iceGlintSheen} />
     </TouchableOpacity>
   );
 };
@@ -62,16 +65,30 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({ onPress }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1.15,
-    backgroundColor: colors.tealPrimary,
-    borderRadius: 24,
+    backgroundColor: 'rgba(0, 212, 148, 0.92)', // Translucent glowing teal ice
+    borderRadius: 26,
     padding: 20,
     minHeight: 220,
     justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.65)',
     shadowColor: '#00D494',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.38,
+    shadowRadius: 20,
+    elevation: 6,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  iceGlintSheen: {
+    position: 'absolute',
+    top: -35,
+    right: -35,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    pointerEvents: 'none',
   },
   topRow: {
     flexDirection: 'row',

@@ -143,7 +143,7 @@ export default function RootLayout() {
                 <Stack
                   screenOptions={{
                     headerShown: false,
-                    contentStyle: { backgroundColor: '#F6F7F9' },
+                    contentStyle: { backgroundColor: '#EDF5FC' },
                   }}
                 >
                   <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -159,7 +159,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#F6F7F9' },
+            contentStyle: { backgroundColor: '#EDF5FC' },
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -374,16 +374,16 @@ const styles = StyleSheet.create({
   // Phone Chassis
   phoneChassis: {
     width: 412,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(244, 249, 255, 0.94)',
     borderRadius: 44,
     overflow: 'hidden',
-    borderWidth: 8,
-    borderColor: '#1E293B',
+    borderWidth: 3.5,
+    borderColor: 'rgba(255, 255, 255, 0.65)',
     position: 'relative',
-    shadowColor: '#000000',
+    shadowColor: '#38BDF8',
     shadowOffset: { width: 0, height: 25 },
-    shadowOpacity: 0.5,
-    shadowRadius: 40,
+    shadowOpacity: 0.35,
+    shadowRadius: 50,
     elevation: 30,
   },
   speakerNotch: {

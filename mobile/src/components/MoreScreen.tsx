@@ -385,16 +385,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // Generic White Card
+  // Generic Frosted Glass Card
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    borderRadius: 24,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.88)',
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 2,
   },
 
   // 1. Profile Card
@@ -416,18 +418,20 @@ const styles = StyleSheet.create({
 
   // 2. Standalone Row Button Cards
   cardRowButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
     borderRadius: 22,
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.88)',
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   coralIconCircle: {
     width: 40,
