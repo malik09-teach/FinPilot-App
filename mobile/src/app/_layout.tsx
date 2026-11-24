@@ -113,8 +113,8 @@ export default function RootLayout() {
                     <Text style={styles.specValue}>0300-1234567</Text>
                   </View>
                   <View style={[styles.specRow, { borderBottomWidth: 0 }]}>
-                    <Text style={styles.specLabel}>UI Version</Text>
-                    <Text style={styles.specValue}>v1.0 (Sadapay)</Text>
+                    <Text style={styles.specLabel}>App Version</Text>
+                    <Text style={styles.specValue}>v1.0</Text>
                   </View>
                 </View>
               </View>
