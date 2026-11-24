@@ -7,7 +7,6 @@ import {
   Switch,
   StatusBar,
   Platform,
-  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -15,6 +14,9 @@ import {
   Eye,
   EyeOff,
   Snowflake,
+  CreditCard,
+  Copy,
+  Check,
 } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../theme/colors';
@@ -24,19 +26,55 @@ interface MyCardsScreenProps {
   onBack: () => void;
 }
 
+const CARDS_DATA = {
+  virtual: {
+    type: 'Virtual card',
+    number: '2621 0882 3080 2449',
+    maskedNumber: '2621 •••• •••• 2449',
+    cvv: '165',
+    validThru: '08/30',
+    holderName: 'SHAH G',
+    bgColor: '#EDF4F3', // Soft icy mint from screenshot
+    textColor: '#475569',
+    watermarkColor: '#64748B',
+  },
+  physical: {
+    type: 'Physical card',
+    number: '2307 7954 2860 1307',
+    maskedNumber: '2307 •••• •••• 1307',
+    cvv: '496',
+    validThru: '02/31',
+    holderName: 'MALIK',
+    bgColor: '#1E293B', // Sleek midnight for physical card
+    textColor: '#F8FAFC',
+    watermarkColor: '#94A3B8',
+  },
+};
+
 export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
   const insets = useSafeAreaInsets();
-  const { card, toggleCardFreeze, user } = useBankStore();
+  const { card, toggleCardFreeze } = useBankStore();
 
   const [activeTab, setActiveTab] = useState<'virtual' | 'physical'>('virtual');
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const isFrozen = card?.isFrozen ?? false;
+  const currentCard = CARDS_DATA[activeTab];
+  const isPhysical = activeTab === 'physical';
 
   const safeTopPadding = Math.max(
     insets.top,
     Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 16
   ) + 8;
+
+  const handleCopy = (text: string, fieldName: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 1800);
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: safeTopPadding }]}>
@@ -97,14 +135,20 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
 
       {/* Card Display Area */}
       <View style={styles.cardArea}>
-        <View style={[styles.card, isFrozen && styles.cardFrozen]}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: currentCard.bgColor },
+            isFrozen && styles.cardFrozen,
+          ]}
+        >
           {/* Subtle Watermark Monogram Background Logo */}
           <View style={styles.watermark}>
             <Svg width={180} height={180} viewBox="0 0 100 100">
               <Path
                 d="M30,20 C15,20 10,35 10,50 C10,65 20,80 35,80 C50,80 55,65 55,50 C55,35 65,20 80,20 C95,20 90,40 90,50 C90,65 80,80 65,80"
                 fill="none"
-                stroke="#64748B"
+                stroke={currentCard.watermarkColor}
                 strokeWidth="12"
                 strokeLinecap="round"
                 opacity={0.12}
@@ -114,8 +158,13 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
 
           {/* Card Top Label */}
           <View style={styles.cardTop}>
-            <Text style={styles.cardTypeLabel}>
-              {activeTab === 'virtual' ? 'Virtual card' : 'Physical card'}
+            <Text
+              style={[
+                styles.cardTypeLabel,
+                isPhysical && { color: '#94A3B8' },
+              ]}
+            >
+              {currentCard.type}
             </Text>
             {isFrozen && (
               <View style={styles.frozenBadge}>
@@ -125,20 +174,51 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
             )}
           </View>
 
-          {/* Sensitive Card Info (Revealed on Eye tap) */}
-          {showDetails && (
-            <View style={styles.cardDetailsBox}>
-              <Text style={styles.cardNumber}>5412 •••• •••• 8824</Text>
-              <View style={styles.cardMetaRow}>
-                <Text style={styles.cardMetaText}>EXP: 08/29</Text>
-                <Text style={styles.cardMetaText}>CVV: 742</Text>
-              </View>
+          {/* Card Number & Sensitive Details */}
+          <View
+            style={[
+              styles.cardDetailsBox,
+              isPhysical && styles.cardDetailsBoxDark,
+            ]}
+          >
+            <Text
+              style={[
+                styles.cardNumber,
+                isPhysical && { color: '#FFFFFF' },
+              ]}
+            >
+              {showDetails ? currentCard.number : currentCard.maskedNumber}
+            </Text>
+            <View style={styles.cardMetaRow}>
+              <Text
+                style={[
+                  styles.cardMetaText,
+                  isPhysical && { color: '#CBD5E1' },
+                ]}
+              >
+                Valid Thru: {showDetails ? currentCard.validThru : '••/••'}
+              </Text>
+              <Text
+                style={[
+                  styles.cardMetaText,
+                  isPhysical && { color: '#CBD5E1' },
+                ]}
+              >
+                CVV: {showDetails ? currentCard.cvv : '•••'}
+              </Text>
             </View>
-          )}
+          </View>
 
           {/* Card Holder Name */}
           <View style={styles.cardNameSection}>
-            <Text style={styles.cardHolderName}>Sayyed Taimoor Shah</Text>
+            <Text
+              style={[
+                styles.cardHolderName,
+                isPhysical && { color: '#F8FAFC' },
+              ]}
+            >
+              {currentCard.holderName}
+            </Text>
           </View>
 
           {/* Card Bottom Row: Eye Button and Mastercard Badge */}
@@ -146,7 +226,10 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
             {/* Eye Toggle Pill Button */}
             <TouchableOpacity
               onPress={() => setShowDetails((prev) => !prev)}
-              style={styles.eyePillButton}
+              style={[
+                styles.eyePillButton,
+                isPhysical && { backgroundColor: '#334155' },
+              ]}
               activeOpacity={0.8}
             >
               {showDetails ? (
@@ -194,6 +277,43 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
             ios_backgroundColor="#E2E8F0"
           />
         </View>
+
+        {/* 2. Quick Card Info Summary Card */}
+        <View style={styles.infoSummaryCard}>
+          <View style={styles.infoSummaryRow}>
+            <View>
+              <Text style={styles.infoSummaryLabel}>Card Number</Text>
+              <Text style={styles.infoSummaryValue}>{currentCard.number}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.copyIconButton}
+              onPress={() => handleCopy(currentCard.number.replace(/\s/g, ''), 'number')}
+            >
+              {copiedField === 'number' ? (
+                <Check size={16} color="#00D494" />
+              ) : (
+                <Copy size={16} color="#64748B" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.infoSummaryDivider} />
+
+          <View style={styles.infoSummaryBottomRow}>
+            <View>
+              <Text style={styles.infoSummaryLabel}>Valid Thru</Text>
+              <Text style={styles.infoSummaryValue}>{currentCard.validThru}</Text>
+            </View>
+            <View>
+              <Text style={styles.infoSummaryLabel}>CVV</Text>
+              <Text style={styles.infoSummaryValue}>{currentCard.cvv}</Text>
+            </View>
+            <View>
+              <Text style={styles.infoSummaryLabel}>Cardholder</Text>
+              <Text style={styles.infoSummaryValue}>{currentCard.holderName}</Text>
+            </View>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -235,7 +355,7 @@ const styles = StyleSheet.create({
     padding: 3,
     marginHorizontal: 20,
     marginTop: 8,
-    marginBottom: 26,
+    marginBottom: 20,
     height: 44,
   },
   tabButton: {
@@ -277,23 +397,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   card: {
-    width: 255,
-    height: 375,
-    backgroundColor: '#EDF4F3', // Soft icy mint/white tint matching screenshot
+    width: 260,
+    height: 380,
+    backgroundColor: '#EDF4F3',
     borderRadius: 26,
     padding: 22,
     justifyContent: 'space-between',
     position: 'relative',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
   },
   cardFrozen: {
     opacity: 0.72,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#CBD5E1',
   },
   watermark: {
     position: 'absolute',
@@ -325,34 +445,41 @@ const styles = StyleSheet.create({
     color: '#2563EB',
   },
   cardDetailsBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 12,
-    padding: 10,
-    marginVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+  },
+  cardDetailsBoxDark: {
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderColor: 'rgba(51, 65, 85, 0.8)',
   },
   cardNumber: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1E293B',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   cardMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 6,
   },
   cardMetaText: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   cardNameSection: {
     marginTop: 'auto',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   cardHolderName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
     color: '#475569',
     letterSpacing: -0.2,
   },
@@ -381,9 +508,9 @@ const styles = StyleSheet.create({
 
   // Options Section
   optionsSection: {
-    marginTop: 34,
+    marginTop: 24,
     paddingHorizontal: 22,
-    gap: 24,
+    gap: 16,
   },
   optionItem: {
     flexDirection: 'row',
@@ -407,5 +534,47 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: '#8E9BAE',
     marginTop: 2,
+  },
+
+  // Info Summary Card Below
+  infoSummaryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+  },
+  infoSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  infoSummaryDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 10,
+  },
+  infoSummaryBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  infoSummaryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  infoSummaryValue: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  copyIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#EDF2F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

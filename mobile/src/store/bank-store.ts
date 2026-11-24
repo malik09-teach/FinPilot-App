@@ -90,7 +90,7 @@ export const useBankStore = create<BankState>((set, get) => ({
   pendingAiAction: null,
   card: {
     id: 'card_01',
-    cardNumberMasked: '5412 •••• •••• 8824',
+    cardNumberMasked: '2621 •••• •••• 2449',
     isFrozen: false,
     dailyLimit: 200000.0,
   },
