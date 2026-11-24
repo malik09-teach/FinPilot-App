@@ -105,8 +105,8 @@ export default function RootLayout() {
                 {/* Account Details Box */}
                 <View style={styles.specsBox}>
                   <View style={styles.specRow}>
-                    <Text style={styles.specLabel}>Account Title</Text>
-                    <Text style={styles.specValue}>Sayyed Taimoor Shah</Text>
+                    <Text style={styles.specLabel}>Account title</Text>
+                    <Text style={styles.specValue}>FinPilot</Text>
                   </View>
                   <View style={styles.specRow}>
                     <Text style={styles.specLabel}>Mobile Number</Text>
@@ -126,8 +126,11 @@ export default function RootLayout() {
               {!isWideDesktop && (
                 <View style={styles.topPinBanner}>
                   <Lock size={15} color="#FA6854" />
-                  <Text style={styles.topPinBannerLabel}>App Login PIN:</Text>
+                  <Text style={styles.topPinBannerLabel}>PIN:</Text>
                   <Text style={styles.topPinBannerCode}>12333</Text>
+                  <Text style={{ color: '#475569', marginHorizontal: 4 }}>•</Text>
+                  <Text style={styles.topPinBannerLabel}>Account title:</Text>
+                  <Text style={[styles.topPinBannerCode, { color: '#F1F5F9' }]}>FinPilot</Text>
                 </View>
               )}
 
