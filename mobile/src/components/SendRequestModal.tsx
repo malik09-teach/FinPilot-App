@@ -128,8 +128,10 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
     }
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+  if (!visible) return null;
+
+  const renderContent = () => (
+    <>
       {/* -------------------------------------------------------- */}
       {/* STEP 1: KEYPAD AMOUNT ENTRY (Exact Match to Screenshot)  */}
       {/* -------------------------------------------------------- */}
@@ -538,6 +540,22 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
           </View>
         </View>
       )}
+    </>
+  );
+
+  // On Web: Render strictly inside the phone chassis overlay!
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[StyleSheet.absoluteFill, { zIndex: 99999 }]}>
+        {renderContent()}
+      </View>
+    );
+  }
+
+  // On iOS / Android Native: Standard fullScreen Modal
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+      {renderContent()}
     </Modal>
   );
 };
