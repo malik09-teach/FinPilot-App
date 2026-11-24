@@ -56,7 +56,7 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
   const { card, toggleCardFreeze } = useBankStore();
 
   const [activeTab, setActiveTab] = useState<'virtual' | 'physical'>('virtual');
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const isFrozen = card?.isFrozen ?? false;
@@ -174,40 +174,42 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
             )}
           </View>
 
-          {/* Card Number & Sensitive Details */}
-          <View
-            style={[
-              styles.cardDetailsBox,
-              isPhysical && styles.cardDetailsBoxDark,
-            ]}
-          >
-            <Text
+          {/* Card Number & Sensitive Details (Revealed only when eye is clicked) */}
+          {showDetails && (
+            <View
               style={[
-                styles.cardNumber,
-                isPhysical && { color: '#FFFFFF' },
+                styles.cardDetailsBox,
+                isPhysical && styles.cardDetailsBoxDark,
               ]}
             >
-              {showDetails ? currentCard.number : currentCard.maskedNumber}
-            </Text>
-            <View style={styles.cardMetaRow}>
               <Text
                 style={[
-                  styles.cardMetaText,
-                  isPhysical && { color: '#CBD5E1' },
+                  styles.cardNumber,
+                  isPhysical && { color: '#FFFFFF' },
                 ]}
               >
-                Valid Thru: {showDetails ? currentCard.validThru : '••/••'}
+                {currentCard.number}
               </Text>
-              <Text
-                style={[
-                  styles.cardMetaText,
-                  isPhysical && { color: '#CBD5E1' },
-                ]}
-              >
-                CVV: {showDetails ? currentCard.cvv : '•••'}
-              </Text>
+              <View style={styles.cardMetaRow}>
+                <Text
+                  style={[
+                    styles.cardMetaText,
+                    isPhysical && { color: '#CBD5E1' },
+                  ]}
+                >
+                  Valid Thru: {currentCard.validThru}
+                </Text>
+                <Text
+                  style={[
+                    styles.cardMetaText,
+                    isPhysical && { color: '#CBD5E1' },
+                  ]}
+                >
+                  CVV: {currentCard.cvv}
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Card Holder Name */}
           <View style={styles.cardNameSection}>
@@ -278,42 +280,44 @@ export const MyCardsScreen: React.FC<MyCardsScreenProps> = ({ onBack }) => {
           />
         </View>
 
-        {/* 2. Quick Card Info Summary Card */}
-        <View style={styles.infoSummaryCard}>
-          <View style={styles.infoSummaryRow}>
-            <View>
-              <Text style={styles.infoSummaryLabel}>Card Number</Text>
-              <Text style={styles.infoSummaryValue}>{currentCard.number}</Text>
+        {/* 2. Quick Card Info Summary Card (Only when showDetails is active) */}
+        {showDetails && (
+          <View style={styles.infoSummaryCard}>
+            <View style={styles.infoSummaryRow}>
+              <View>
+                <Text style={styles.infoSummaryLabel}>Card Number</Text>
+                <Text style={styles.infoSummaryValue}>{currentCard.number}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.copyIconButton}
+                onPress={() => handleCopy(currentCard.number.replace(/\s/g, ''), 'number')}
+              >
+                {copiedField === 'number' ? (
+                  <Check size={16} color="#00D494" />
+                ) : (
+                  <Copy size={16} color="#64748B" />
+                )}
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.copyIconButton}
-              onPress={() => handleCopy(currentCard.number.replace(/\s/g, ''), 'number')}
-            >
-              {copiedField === 'number' ? (
-                <Check size={16} color="#00D494" />
-              ) : (
-                <Copy size={16} color="#64748B" />
-              )}
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.infoSummaryDivider} />
+            <View style={styles.infoSummaryDivider} />
 
-          <View style={styles.infoSummaryBottomRow}>
-            <View>
-              <Text style={styles.infoSummaryLabel}>Valid Thru</Text>
-              <Text style={styles.infoSummaryValue}>{currentCard.validThru}</Text>
-            </View>
-            <View>
-              <Text style={styles.infoSummaryLabel}>CVV</Text>
-              <Text style={styles.infoSummaryValue}>{currentCard.cvv}</Text>
-            </View>
-            <View>
-              <Text style={styles.infoSummaryLabel}>Cardholder</Text>
-              <Text style={styles.infoSummaryValue}>{currentCard.holderName}</Text>
+            <View style={styles.infoSummaryBottomRow}>
+              <View>
+                <Text style={styles.infoSummaryLabel}>Valid Thru</Text>
+                <Text style={styles.infoSummaryValue}>{currentCard.validThru}</Text>
+              </View>
+              <View>
+                <Text style={styles.infoSummaryLabel}>CVV</Text>
+                <Text style={styles.infoSummaryValue}>{currentCard.cvv}</Text>
+              </View>
+              <View>
+                <Text style={styles.infoSummaryLabel}>Cardholder</Text>
+                <Text style={styles.infoSummaryValue}>{currentCard.holderName}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
       </View>
     </View>
   );
