@@ -213,6 +213,22 @@ Press `w` in terminal to launch in **Web browser**, or scan the QR code using Ex
 
 ---
 
-## 8. License
+## 8. Product Requirements & Excalidraw Architecture Docs
+
+Complete engineering specifications, Mermaid diagrams, an interactive HTML Excalidraw Studio, and editable `.excalidraw` blueprints are available in [`docs/`](./docs/):
+
+- **[Complete Product Requirements Document (PRD)](./docs/PRD.md)**
+- **[Interactive Excalidraw Architecture Studio](./docs/FinPilot_Architecture_Excalidraw.html)**
+- **Editable Excalidraw Blueprints (`docs/diagrams/`):**
+  - [`01_system_architecture.excalidraw`](./docs/diagrams/01_system_architecture.excalidraw)
+  - [`02_ai_multi_agent_hitl.excalidraw`](./docs/diagrams/02_ai_multi_agent_hitl.excalidraw)
+  - [`03_double_entry_ledger.excalidraw`](./docs/diagrams/03_double_entry_ledger.excalidraw)
+  - [`04_mobile_ui_navigation.excalidraw`](./docs/diagrams/04_mobile_ui_navigation.excalidraw)
+  - [`05_database_er_architecture.excalidraw`](./docs/diagrams/05_database_er_architecture.excalidraw)
+  - [`06_web_emulator_containment.excalidraw`](./docs/diagrams/06_web_emulator_containment.excalidraw)
+
+---
+
+## 9. License
 
 FinPilot is developed for hackathon demonstration under the MIT License.

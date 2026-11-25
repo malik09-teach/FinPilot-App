@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinPilot v1.0 — Interactive Excalidraw Architecture Studio</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .sketch-font {
+      font-family: "Virgil", "Chalkboard SE", "Bradley Hand", "Segoe Print", ui-sans-serif, system-ui, sans-serif;
+    }
+    svg text {
+      user-select: none;
+    }
+    .canvas-grid-light {
+      background-image: radial-gradient(rgba(15, 23, 42, 0.12) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .canvas-grid-dark {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-0">
+  <div class="min-h-screen flex flex-col">
+    <!-- Top Header -->
+    <header class="border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-sm">
+          FP
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-[var(--foreground)]">
+            FinPilot v1.0 — Excalidraw Architecture Studio
+          </h1>
+          <p class="text-xs text-[var(--muted-foreground)]">
+            Hand-drawn system blueprints • Click any node to inspect verified source files • Export to .excalidraw
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          id="btn-copy-json"
+          class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-xs font-medium text-[var(--foreground)] hover:opacity-80 cursor-pointer"
+        >
+          Copy .excalidraw JSON
+        </button>
+        <button
+          id="btn-download-json"
+          class="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold hover:opacity-90 cursor-pointer"
+        >
+          Download .excalidraw
+        </button>
+      </div>
+    </header>
+
+    <!-- Diagram Navigation Tabs -->
+    <nav id="diagram-tabs" class="border-b border-[var(--border)] bg-[var(--card)] px-4 py-2 flex flex-wrap gap-1.5"></nav>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <!-- Excalidraw Canvas Area -->
+      <div class="flex-1 flex flex-col relative min-h-[540px]">
+        <!-- Canvas Toolbar -->
+        <div class="px-4 py-2 border-b border-[var(--border)] bg-[var(--content)] flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span id="diagram-subtitle" class="font-medium text-[var(--muted-foreground)]"></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="zoom-out" class="px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] cursor-pointer">-</button>
+            <span id="zoom-readout" class="px-2 font-mono text-[var(--muted-foreground)] tabular-nums">100%</span>
+            <button id="zoom-in" class="px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] cursor-pointer">+</button>
+            <button id="zoom-reset" class="px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] cursor-pointer ml-1">Fit</button>
+          </div>
+        </div>
+
+        <!-- SVG Sketch Viewport -->
+        <div id="canvas-viewport" class="flex-1 overflow-hidden relative cursor-grab active:cursor-grabbing canvas-grid-dark" style="min-height: 520px;">
+          <svg id="sketch-svg" class="w-full h-full" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+
+      <!-- Right Inspector Sidebar -->
+      <aside class="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-[var(--border)] bg-[var(--card)] p-4 flex flex-col gap-4 overflow-y-auto">
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1">
+            Node Inspector
+          </div>
+          <h2 id="inspector-title" class="text-sm font-bold text-[var(--foreground)]">
+            Select a component
+          </h2>
+          <p id="inspector-badge" class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
+            Overview
+          </p>
+        </div>
+
+        <div class="border-t border-[var(--border)] pt-3">
+          <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-1">Architecture Notes</div>
+          <p id="inspector-desc" class="text-xs leading-relaxed text-[var(--foreground)]"></p>
+        </div>
+
+        <div class="border-t border-[var(--border)] pt-3">
+          <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-1.5">Verified Source Paths & Symbols</div>
+          <ul id="inspector-files" class="space-y-1.5 text-xs font-mono text-[var(--code-foreground)]"></ul>
+        </div>
+
+        <div class="border-t border-[var(--border)] pt-3 mt-auto">
+          <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-1.5">Excalidraw Legend</div>
+          <div class="grid grid-cols-2 gap-1.5 text-xs text-[var(--muted-foreground)]">
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block border border-[#1971c2]" style="background:#a5d8ff"></span> Frontend / UI</div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block border border-[#2f9e44]" style="background:#b2f2bb"></span> Core Service</div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block border border-[#e03131]" style="background:#ffc9c9"></span> Security / PIN</div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block border border-[#6741d9]" style="background:#d0bfff"></span> AI Agent / Tool</div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block border border-[#f08c00]" style="background:#ffec99"></span> Database / Store</div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block border border-[#0c8599]" style="background:#99e9f2"></span> Gateway / Router</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. ALL 6 VERIFIED FINPILOT ARCHITECTURE DIAGRAMS
+    // =========================================================================
+    const DIAGRAMS = [
+      {
+        id: '01_system_architecture',
+        tabLabel: '1. System Architecture',
+        title: 'FinPilot Full-Stack System & Monorepo Architecture',
+        subtitle: 'Client Shell (Expo / RN Web) → Express 5 API Monolith → Prisma SQLite',
+        width: 1120,
+        height: 680,
+        overview: {
+          title: 'End-to-End Banking Monolith & Ice Glass UI',
+          badge: 'Full System Blueprint',
+          desc: 'FinPilot pairs an Expo React Native mobile/web app (with Zustand offline fallback and responsive 412px desktop emulator chassis) against a layered TypeScript Express 5 monolith backed by SQLite via Prisma ORM.',
+          files: ['package.json', 'mobile/src/app/_layout.tsx', 'backend/src/server.ts', 'backend/prisma/schema.prisma']
+        },
+        zones: [
+          { id: 'z1', x: 25, y: 25, w: 320, h: 630, label: 'Client Tier (mobile/)', color: '#1971c2' },
+          { id: 'z2', x: 375, y: 25, w: 430, h: 630, label: 'Express 5 API Backend (backend/src/)', color: '#2f9e44' },
+          { id: 'z3', x: 835, y: 25, w: 260, h: 630, label: 'Data & Ledger (Prisma)', color: '#f08c00' }
+        ],
+        nodes: [
+          {
+            id: 'shell', x: 50, y: 75, w: 270, h: 85, shape: 'rect', palette: 'blue',
+            title: 'Device & Emulator Shell', sub: 'iOS / Android / Web 412x860 Chassis',
+            badge: 'Presentation',
+            desc: 'Wraps web desktop (>520px) in a frosted 412px phone chassis with optional PIN 12333 side card (>860px) and constrains all modals via AdaptiveModal.',
+            files: ['mobile/src/app/_layout.tsx', 'mobile/src/global.css', 'mobile/src/components/AdaptiveModal.tsx']
+          },
+          {
+            id: 'screens', x: 50, y: 195, w: 270, h: 105, shape: 'rect', palette: 'blue',
+            title: 'Ice Glassmorphism Screens', sub: 'Login, Dashboard, Cards, Payments, QR, More',
+            badge: 'React Native UI',
+            desc: 'Uses crystalline #EDF5FC frost backdrop, translucent rgba(255,255,255,0.78) cards, and crystal sheen overlays across all 4 tabs and sub-flows.',
+            files: ['mobile/src/app/index.tsx', 'mobile/src/theme/colors.ts', 'mobile/src/components/MyCardsScreen.tsx']
+          },
+          {
+            id: 'zustand', x: 50, y: 340, w: 270, h: 95, shape: 'rect', palette: 'yellow',
+            title: 'useBankStore (Zustand)', sub: 'Balance, Recent Tx, Cards + Offline Fallback',
+            badge: 'Client State',
+            desc: 'Hydrates state via Promise.allSettled on login and provides local simulation fallbacks if the Express API is unreachable.',
+            files: ['mobile/src/store/bank-store.ts']
+          },
+          {
+            id: 'apiclient', x: 50, y: 480, w: 270, h: 85, shape: 'rect', palette: 'cyan',
+            title: 'ApiClient Service', sub: 'EXPO_PUBLIC_API_URL || localhost:4000/api',
+            badge: 'HTTP Client',
+            desc: 'Attaches Authorization Bearer JWT and x-demo-user-id (usr_temoor_01) headers across 27 endpoint wrappers.',
+            files: ['mobile/src/services/api.ts']
+          },
+          {
+            id: 'mw', x: 405, y: 75, w: 370, h: 85, shape: 'rect', palette: 'cyan',
+            title: 'Express Gateway & Middleware', sub: 'CORS, JSON, authenticate, Zod errorHandler',
+            badge: 'API Security',
+            desc: 'Verifies JWT tokens via JWT_SECRET or falls back to x-demo-user-id for hackathon testing; formats Zod validation errors as HTTP 400.',
+            files: ['backend/src/server.ts', 'backend/src/middleware/auth.ts', 'backend/src/middleware/error-handler.ts']
+          },
+          {
+            id: 'routers', x: 405, y: 195, w: 370, h: 120, shape: 'rect', palette: 'green',
+            title: '11 Modular Domain Routers', sub: 'auth, accounts, transactions, transfers, cards,\nbudgets, saving-goals, beneficiaries, notifications, ai, audit',
+            badge: 'REST API Layer',
+            desc: 'Controller -> Service -> Prisma architecture exposing /api/* endpoints alongside unauthenticated /health status endpoint.',
+            files: ['backend/src/modules/accounts/accounts.routes.ts', 'backend/src/modules/transfers/transfers.routes.ts', 'backend/src/modules/cards/cards.routes.ts']
+          },
+          {
+            id: 'core', x: 405, y: 350, w: 370, h: 105, shape: 'rect', palette: 'green',
+            title: 'Core Banking Engine', sub: 'TransfersService (Double-Entry) & AccountsService',
+            badge: 'Atomic Ledger',
+            desc: 'Enforces PKR 100K single / PKR 200K daily transfer limits, idempotency keys, and balanced debit/credit ledger writes inside prisma.$transaction.',
+            files: ['backend/src/modules/transfers/transfers.service.ts', 'backend/src/modules/accounts/accounts.service.ts']
+          },
+          {
+            id: 'ai', x: 405, y: 490, w: 370, h: 110, shape: 'rect', palette: 'purple',
+            title: 'AgentOrchestrator & ToolRegistry', sub: '6 Domain Agents + 14 Tools (HITL PIN Guard)',
+            badge: 'Agentic AI',
+            desc: 'Routes user prompts deterministically across Analyst, Budget, Transaction, Fraud, Goal, and Subscription agents without direct balance mutation.',
+            files: ['backend/src/ai/orchestrator.ts', 'backend/src/ai/tools/registry.ts', 'backend/src/modules/ai-agent/ai-agent.service.ts']
+          },
+          {
+            id: 'prisma', x: 860, y: 135, w: 210, h: 100, shape: 'cylinder', palette: 'yellow',
+            title: 'Prisma ORM Client', sub: 'Schema v6.4.1 (SQLite dev.db)',
+            badge: 'ORM Layer',
+            desc: 'Manages 16 interconnected banking, PFM, card, notification, audit, and AI agent models.',
+            files: ['backend/src/config/prisma.ts', 'backend/prisma/schema.prisma']
+          },
+          {
+            id: 'ledgerdb', x: 860, y: 295, w: 210, h: 115, shape: 'cylinder', palette: 'yellow',
+            title: 'Ledger & Core Tables', sub: 'User, Account, Transaction,\nLedgerEntry, Transfer, Card',
+            badge: 'Banking Data',
+            desc: 'Seeded with Syed Temoor Shah (Rs. 145,000), Ali Khan (Rs. 45,000), and System Reserve 9999999999 (Rs. 100M).',
+            files: ['backend/prisma/seed.ts']
+          },
+          {
+            id: 'auditdb', x: 860, y: 465, w: 210, h: 115, shape: 'cylinder', palette: 'red',
+            title: 'AI & Compliance Tables', sub: 'AgentSession, AgentAction,\nAgentApproval, AuditLog',
+            badge: 'Compliance',
+            desc: 'Persists full AI reasoning metadata, approval methods (PIN / MANUAL), expiration timestamps, and immutable AuditLog.',
+            files: ['backend/src/modules/audit/audit.service.ts']
+          }
+        ],
+        edges: [
+          { from: 'shell', to: 'screens', label: 'mounts Stack' },
+          { from: 'screens', to: 'zustand', label: 'actions & state' },
+          { from: 'zustand', to: 'apiclient', label: 'REST calls' },
+          { from: 'apiclient', to: 'mw', label: 'JSON / JWT' },
+          { from: 'mw', to: 'routers', label: 'verified userId' },
+          { from: 'routers', to: 'core', label: 'banking ops' },
+          { from: 'routers', to: 'ai', label: '/api/ai/*' },
+          { from: 'ai', to: 'core', label: 'after APPROVAL' },
+          { from: 'core', to: 'prisma', label: '$transaction' },
+          { from: 'ai', to: 'auditdb', label: 'AuditService.log' },
+          { from: 'prisma', to: 'ledgerdb', label: 'SQLite' }
+        ]
+      },
+      {
+        id: '02_ai_multi_agent_hitl',
+        tabLabel: '2. AI Multi-Agent & HITL',
+        title: 'Multi-Agent AI Orchestrator & Human-in-the-Loop Security Architecture',
+        subtitle: 'Deterministic Intent Router → 6 Specialized Agents → 14 Controlled Tools → PIN Verification Gate',
+        width: 1120,
+        height: 680,
+        overview: {
+          title: 'Controlled Agentic Architecture (HITL Safety)',
+          badge: 'Zero Direct Mutation',
+          desc: 'AI workflows can inspect read tools and emit Draft Actions into AWAITING_APPROVAL state, but restricted operations (Transfers, Freeze Card) mandate explicit user PIN approval verified by AiAgentService.',
+          files: ['backend/src/ai/orchestrator.ts', 'backend/src/ai/tools/registry.ts', 'backend/src/modules/ai-agent/ai-agent.service.ts']
+        },
+        zones: [
+          { id: 'za', x: 25, y: 30, w: 240, h: 620, label: 'Intent Routing', color: '#0c8599' },
+          { id: 'zb', x: 295, y: 30, w: 250, h: 620, label: '6 Domain Agents', color: '#6741d9' },
+          { id: 'zc', x: 575, y: 30, w: 260, h: 620, label: 'Controlled Tool Registry', color: '#2f9e44' },
+          { id: 'zd', x: 865, y: 30, w: 230, h: 620, label: 'HITL Gate & Execution', color: '#e03131' }
+        ],
+        nodes: [
+          {
+            id: 'prompt', x: 45, y: 75, w: 200, h: 75, shape: 'rect', palette: 'cyan',
+            title: 'POST /api/ai/chat', sub: 'User Prompt + Session ID',
+            badge: 'Entry Point',
+            desc: 'Validates message via Zod, loads/creates active AgentSession, and stores USER AgentMessage in SQLite.',
+            files: ['backend/src/modules/ai-agent/ai-agent.controller.ts']
+          },
+          {
+            id: 'router', x: 45, y: 205, w: 200, h: 120, shape: 'diamond', palette: 'cyan',
+            title: 'Keyword Intent Router', sub: '6 Workflows:\nTransfer / Save / Fraud /\nSubs / Budget / Analysis',
+            badge: 'Orchestrator',
+            desc: 'Matches keywords deterministically in priority order: Transfer -> Savings -> Fraud -> Subscriptions -> Budget -> Financial Analysis default.',
+            files: ['backend/src/ai/orchestrator.ts']
+          },
+          {
+            id: 'txagent', x: 315, y: 65, w: 210, h: 75, shape: 'rect', palette: 'purple',
+            title: 'TransactionAgent', sub: 'Resolve beneficiary & limits',
+            badge: 'Transfer Workflow',
+            desc: 'Matches beneficiary name/nickname/account (with Ali fallback), checks PKR limits, and builds transfer draft.',
+            files: ['backend/src/ai/agents/transaction.agent.ts']
+          },
+          {
+            id: 'goalagent', x: 315, y: 160, w: 210, h: 75, shape: 'rect', palette: 'purple',
+            title: 'GoalPlanningAgent', sub: 'Savings timeline & feasibility',
+            badge: 'Savings Workflow',
+            desc: 'Computes monthly deposit feasibility against net surplus together with FinancialAnalystAgent.',
+            files: ['backend/src/ai/agents/goal.agent.ts']
+          },
+          {
+            id: 'fraudagent', x: 315, y: 255, w: 210, h: 80, shape: 'rect', palette: 'red',
+            title: 'FraudDetectionAgent', sub: 'Spike >3.5x avg (+25) & Velocity (+15)',
+            badge: 'Risk Engine',
+            desc: 'Computes risk score 0-100: LOW (<30), MEDIUM (30-59 VERIFY_OTP), HIGH (>=60 FREEZE_CARD proposal).',
+            files: ['backend/src/ai/agents/fraud.agent.ts']
+          },
+          {
+            id: 'subagent', x: 315, y: 355, w: 210, h: 75, shape: 'rect', palette: 'purple',
+            title: 'SubscriptionAgent', sub: 'Recurring debits & 7d alerts',
+            badge: 'Subscriptions',
+            desc: 'Aggregates monthly & annual recurring subscription cost across Netflix, Spotify, Fiber, Gym.',
+            files: ['backend/src/ai/agents/subscription.agent.ts']
+          },
+          {
+            id: 'budgetagent', x: 315, y: 450, w: 210, h: 75, shape: 'rect', palette: 'purple',
+            title: 'BudgetAgent', sub: '30/25/20/15/10 Category Caps',
+            badge: 'Budget Planner',
+            desc: 'Fires alerts when utilization >= 80% and drafts monthly limits across 5 spending categories.',
+            files: ['backend/src/ai/agents/budget.agent.ts']
+          },
+          {
+            id: 'analystagent', x: 315, y: 545, w: 210, h: 75, shape: 'rect', palette: 'purple',
+            title: 'FinancialAnalystAgent', sub: 'Inflow, Outflow & Savings Rate',
+            badge: 'Default Insights',
+            desc: 'Runs 4 READ tools concurrently via Promise.all to compute net cash flow and category drivers.',
+            files: ['backend/src/ai/agents/analyst.agent.ts']
+          },
+          {
+            id: 'readtools', x: 595, y: 80, w: 220, h: 165, shape: 'rect', palette: 'green',
+            title: '9 READ Tools (Unprivileged)', sub: 'get_account_balance, get_transactions,\nget_spending_analytics, get_income_summary,\nget_expense_summary, get_budget_progress,\nget_savings_goals, get_recurring_transactions,\nget_beneficiaries',
+            badge: 'requiresApproval: false',
+            desc: 'Safe read-only database queries returning account snapshots, history, and analytics.',
+            files: ['backend/src/ai/tools/registry.ts']
+          },
+          {
+            id: 'drafttools', x: 595, y: 275, w: 220, h: 120, shape: 'rect', palette: 'yellow',
+            title: '3 DRAFT Tools (Proposals)', sub: 'create_transfer_draft\ncreate_savings_goal_draft\ncreate_budget_draft',
+            badge: 'requiresApproval: true',
+            desc: 'Validates inputs & creates structured JSON draft payloads without mutating balances.',
+            files: ['backend/src/ai/tools/registry.ts']
+          },
+          {
+            id: 'restrictedtools', x: 595, y: 430, w: 220, h: 120, shape: 'rect', palette: 'red',
+            title: '2 RESTRICTED Tools', sub: 'execute_approved_transfer\nfreeze_card',
+            badge: 'Server State Check',
+            desc: 'execute_approved_transfer verifies action.status === APPROVED before calling TransfersService.',
+            files: ['backend/src/ai/tools/registry.ts']
+          },
+          {
+            id: 'hitlgate', x: 885, y: 110, w: 190, h: 110, shape: 'rect', palette: 'red',
+            title: 'AgentAction State', sub: 'AWAITING_APPROVAL\n(15m TTL for transfers)',
+            badge: 'Pending Approval',
+            desc: 'Stored alongside AgentApproval record requiring PIN (TRANSFER/FREEZE_CARD) or MANUAL confirmation.',
+            files: ['backend/prisma/schema.prisma', 'backend/src/ai/orchestrator.ts']
+          },
+          {
+            id: 'pincheck', x: 885, y: 270, w: 190, h: 110, shape: 'diamond', palette: 'red',
+            title: 'PIN & Approve API', sub: 'POST /actions/:id/approve\nVerify bcrypt pinHash',
+            badge: 'Human Gate',
+            desc: 'AiAgentService checks PIN via AuthService.verifyPin (throws "Incorrect authorization PIN" on mismatch).',
+            files: ['backend/src/modules/ai-agent/ai-agent.service.ts']
+          },
+          {
+            id: 'execdone', x: 885, y: 440, w: 190, h: 125, shape: 'rect', palette: 'green',
+            title: 'Atomic Core Execution', sub: 'Transfers / Goal / Budget / Freeze\n-> COMPLETED + AuditLog',
+            badge: 'Idempotent Exec',
+            desc: 'Uses idempotencyKey AGENT-EXEC-<actionId> and appends assistant confirmation message.',
+            files: ['backend/src/modules/ai-agent/ai-agent.service.ts']
+          }
+        ],
+        edges: [
+          { from: 'prompt', to: 'router', label: 'parse intent' },
+          { from: 'router', to: 'txagent', label: 'send/pay' },
+          { from: 'router', to: 'goalagent', label: 'save/goal' },
+          { from: 'router', to: 'fraudagent', label: 'fraud/risk' },
+          { from: 'router', to: 'subagent', label: 'subs' },
+          { from: 'router', to: 'budgetagent', label: 'budget' },
+          { from: 'router', to: 'analystagent', label: 'default' },
+          { from: 'analystagent', to: 'readtools', label: 'read metrics' },
+          { from: 'txagent', to: 'drafttools', label: 'draft' },
+          { from: 'goalagent', to: 'drafttools', label: 'draft' },
+          { from: 'budgetagent', to: 'drafttools', label: 'draft' },
+          { from: 'drafttools', to: 'hitlgate', label: 'persist draft' },
+          { from: 'hitlgate', to: 'pincheck', label: 'user action' },
+          { from: 'pincheck', to: 'execdone', label: 'PIN valid' },
+          { from: 'restrictedtools', to: 'execdone', label: 'ledger post' }
+        ]
+      },
+      {
+        id: '03_double_entry_ledger',
+        tabLabel: '3. Double-Entry Ledger',
+        title: 'Atomic Double-Entry Transfer & Clearing Ledger Pipeline',
+        subtitle: 'Idempotency Check → Limit Validation → 15s Atomic prisma.$transaction → ∑Debit = ∑Credit',
+        width: 1120,
+        height: 660,
+        overview: {
+          title: 'Financial Ledger Integrity Pipeline',
+          badge: 'TransfersService',
+          desc: 'Guarantees zero duplicate charges via idempotency keys, enforces PKR 100K single / PKR 200K daily ceilings, and ensures balanced debit and credit LedgerEntry rows for every transfer.',
+          files: ['backend/src/modules/transfers/transfers.service.ts', 'backend/tests/finpilot.test.ts']
+        },
+        zones: [
+          { id: 'zl1', x: 25, y: 30, w: 330, h: 600, label: 'Pre-Flight Validation', color: '#e03131' },
+          { id: 'zl2', x: 385, y: 30, w: 410, h: 600, label: 'Atomic DB Transaction (15s timeout)', color: '#2f9e44' },
+          { id: 'zl3', x: 825, y: 30, w: 270, h: 600, label: 'Clearing & Side Effects', color: '#f08c00' }
+        ],
+        nodes: [
+          {
+            id: 'req', x: 50, y: 75, w: 280, h: 80, shape: 'rect', palette: 'blue',
+            title: 'executeTransfer(input)', sub: 'Direct API or AI Approved Action',
+            badge: 'Entry',
+            desc: 'Accepts userId, recipientAccount, recipientName, amount, note, optional idempotencyKey & approvalId.',
+            files: ['backend/src/modules/transfers/transfers.controller.ts']
+          },
+          {
+            id: 'idem', x: 50, y: 195, w: 280, h: 95, shape: 'diamond', palette: 'yellow',
+            title: 'Idempotency Lookup', sub: 'prisma.transfer.findUnique\n(idempotencyKey)',
+            badge: 'Duplicate Guard',
+            desc: 'If an identical key already settled, immediately returns { transfer, isDuplicate: true } without touching balances.',
+            files: ['backend/src/modules/transfers/transfers.service.ts']
+          },
+          {
+            id: 'limits', x: 50, y: 335, w: 280, h: 120, shape: 'rect', palette: 'red',
+            title: 'validateTransfer Rules', sub: 'amount > 0 & <= 100,000 PKR\nAccount ACTIVE\nAvailable >= amount\nToday Sum <= 200,000 PKR',
+            badge: 'Risk Checks',
+            desc: 'Calculates today sum from midnight using COMPLETED transfers and validates balance - lockedBalance.',
+            files: ['backend/src/modules/transfers/transfers.service.ts']
+          },
+          {
+            id: 'senderdebit', x: 415, y: 80, w: 350, h: 120, shape: 'rect', palette: 'green',
+            title: '1. Sender Account Debit', sub: 'account.balance { decrement: amount }\nCreate Transfer (COMPLETED)\nCreate Transaction (DEBIT)',
+            badge: 'Sender Side',
+            desc: 'Generates unique reference TXN-TRF-<6digits>-<3digits> and writes debit transaction record.',
+            files: ['backend/src/modules/transfers/transfers.service.ts']
+          },
+          {
+            id: 'ledgerdr', x: 415, y: 245, w: 350, h: 85, shape: 'rect', palette: 'yellow',
+            title: '2. Write Debit LedgerEntry', sub: 'type: DEBIT, balanceAfter: updatedSender.balance',
+            badge: 'Ledger Proof DR',
+            desc: 'Immutable ledger snapshot of sender post-transfer balance linked to senderTx.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'recbranch', x: 415, y: 380, w: 350, h: 100, shape: 'diamond', palette: 'cyan',
+            title: 'Recipient Within FinPilot?', sub: 'account.findUnique(recipientAccount)',
+            badge: 'Routing Branch',
+            desc: 'Checks whether counterparty belongs to an internal FinPilot account (e.g. Ali Khan 1004892110).',
+            files: ['backend/src/modules/transfers/transfers.service.ts']
+          },
+          {
+            id: 'internalcr', x: 415, y: 515, w: 350, h: 90, shape: 'rect', palette: 'green',
+            title: '3A. Internal Credit + Ledger CR', sub: 'Increment recipient balance\nTransaction (CREDIT) + LedgerEntry (CREDIT)',
+            badge: 'On-Us Settlement',
+            desc: 'Credits internal recipient immediately with -CR reference suffix.',
+            files: ['backend/src/modules/transfers/transfers.service.ts']
+          },
+          {
+            id: 'reservecr', x: 845, y: 120, w: 230, h: 125, shape: 'cylinder', palette: 'yellow',
+            title: '3B. System Reserve Clearing', sub: 'Account 9999999999\nIncrement reserve balance\nLedgerEntry (CREDIT)',
+            badge: 'Off-Us Settlement',
+            desc: 'Credits system clearing reserve for external bank/merchant transfers so Debit == Credit always holds.',
+            files: ['backend/prisma/seed.ts']
+          },
+          {
+            id: 'auditnote', x: 845, y: 310, w: 230, h: 120, shape: 'rect', palette: 'purple',
+            title: '4. Non-Blocking Audit & Alert', sub: 'AuditService.log(TRANSFER_EXECUTED)\nNotification(Transfer Successful)',
+            badge: 'Post-Commit',
+            desc: 'Tags actorType as AI_AGENT if approvalId is set, else USER.',
+            files: ['backend/src/modules/audit/audit.service.ts']
+          },
+          {
+            id: 'inv', x: 845, y: 480, w: 230, h: 95, shape: 'rect', palette: 'green',
+            title: 'Ledger Invariant Verified', sub: 'SUM(Debit) === SUM(Credit)\nVerified by Jest Unit Suite',
+            badge: 'Zero Imbalance',
+            desc: 'Verified explicitly by automated test "Executes double-entry transfer atomically with balanced ledger entries".',
+            files: ['backend/tests/finpilot.test.ts']
+          }
+        ],
+        edges: [
+          { from: 'req', to: 'idem', label: 'key check' },
+          { from: 'idem', to: 'limits', label: 'new tx' },
+          { from: 'limits', to: 'senderdebit', label: 'valid' },
+          { from: 'senderdebit', to: 'ledgerdr', label: 'DR log' },
+          { from: 'ledgerdr', to: 'recbranch', label: 'lookup' },
+          { from: 'recbranch', to: 'internalcr', label: 'internal' },
+          { from: 'recbranch', to: 'reservecr', label: 'external' },
+          { from: 'internalcr', to: 'auditnote', label: 'committed' },
+          { from: 'reservecr', to: 'auditnote', label: 'committed' },
+          { from: 'auditnote', to: 'inv', label: 'balanced' }
+        ]
+      },
+      {
+        id: '04_mobile_ui_navigation',
+        tabLabel: '4. UI Navigation & Flows',
+        title: 'Mobile & Web Application Navigation, Modals & User Journeys',
+        subtitle: '5-Digit PIN Lockscreen → 4 Bottom Navigation Tabs → Specialized Fintech Sub-Flows',
+        width: 1140,
+        height: 680,
+        overview: {
+          title: 'Complete Screen & Modal Map',
+          badge: 'Frontend Topology',
+          desc: 'Documents active navigation paths (LoginScreen, Personal Dashboard, My Cards, Send & Request, Mobile Payments, QR Scan, More) and identifies components existing in codebase awaiting menu wiring.',
+          files: ['mobile/src/app/index.tsx', 'mobile/src/components/BottomNav.tsx', 'mobile/src/components/MobilePaymentsFlow.tsx']
+        },
+        zones: [
+          { id: 'zu1', x: 20, y: 25, w: 220, h: 630, label: 'Entry & Shell', color: '#e03131' },
+          { id: 'zu2', x: 265, y: 25, w: 580, h: 630, label: '4 Active BottomNav Tabs & Modals', color: '#1971c2' },
+          { id: 'zu3', x: 870, y: 25, w: 245, h: 630, label: 'Unmounted / PFM Modals', color: '#6741d9' }
+        ],
+        nodes: [
+          {
+            id: 'login', x: 40, y: 80, w: 180, h: 110, shape: 'rect', palette: 'red',
+            title: 'LoginScreen', sub: '5-Digit PIN: 12333\nor Biometric Shortcut',
+            badge: 'Auth Gate',
+            desc: 'Coral screen with frosted keypad buttons; unlocks to Personal tab and fetches initial data.',
+            files: ['mobile/src/components/LoginScreen.tsx']
+          },
+          {
+            id: 'bnav', x: 40, y: 250, w: 180, h: 120, shape: 'rect', palette: 'cyan',
+            title: 'BottomNav Bar', sub: 'Personal | Payments |\nScan QR | More',
+            badge: 'Frosted Ice Bar',
+            desc: 'Floating translucent tab switcher positioned at bottom of phone chassis.',
+            files: ['mobile/src/components/BottomNav.tsx']
+          },
+          {
+            id: 'pers', x: 290, y: 65, w: 250, h: 120, shape: 'rect', palette: 'green',
+            title: 'Tab 1: Personal Dashboard', sub: 'BalanceCard (Teal) + ActionCards\n(Load Money / Send & Request)\n+ Top 3 Transactions',
+            badge: 'Home Screen',
+            desc: 'Core dashboard displaying Rs. balance with eye toggle and glass cards.',
+            files: ['mobile/src/components/BalanceCard.tsx', 'mobile/src/components/ActionCards.tsx', 'mobile/src/components/TransactionsSection.tsx']
+          },
+          {
+            id: 'cards', x: 580, y: 65, w: 240, h: 115, shape: 'rect', palette: 'cyan',
+            title: 'MyCardsScreen', sub: 'Virtual: 2621..2449 (SHAH G)\nPhysical: 2307..1307 (MALIK)\nSync Eye Reveal & Freeze',
+            badge: 'Tap BalanceCard',
+            desc: 'Hides all credentials & summary card by default; tapping eye button reveals card number, CVV, Valid Thru, and copy action.',
+            files: ['mobile/src/components/MyCardsScreen.tsx']
+          },
+          {
+            id: 'sendreq', x: 580, y: 205, w: 240, h: 120, shape: 'rect', palette: 'red',
+            title: 'SendRequestModal', sub: 'Keypad -> Recipient ->\nPIN (12333) -> Receipt / Share Link',
+            badge: '5-Step Modal',
+            desc: 'Supports money sending (P2P/IBAN) and sharable finpilot.me payment request links.',
+            files: ['mobile/src/components/SendRequestModal.tsx']
+          },
+          {
+            id: 'txmodals', x: 290, y: 210, w: 250, h: 115, shape: 'rect', palette: 'yellow',
+            title: 'Load & History Modals', sub: 'LoadMoneyModal (5K-50K)\nAllTransactionsModal (Search/Filter)\nTransactionDetailModal (DR/CR)',
+            badge: 'AdaptiveModal',
+            desc: 'Includes cryptographic Double-Entry Ledger Proof card inside TransactionDetailModal.',
+            files: ['mobile/src/components/LoadMoneyModal.tsx', 'mobile/src/components/AllTransactionsModal.tsx', 'mobile/src/components/TransactionDetailModal.tsx']
+          },
+          {
+            id: 'paytab', x: 290, y: 360, w: 250, h: 130, shape: 'rect', palette: 'blue',
+            title: 'Tab 2: PaymentsScreen', sub: '1. Mobile payments (Flow)\n2. Bills & Utilities (K-Electric..)\n3. GameZone (PSN/Steam/PUBG)\n4. Money requests',
+            badge: 'Services Hub',
+            desc: 'Hosts sub-modals for utility bills & game vouchers plus inline navigation to MobilePaymentsFlow.',
+            files: ['mobile/src/components/PaymentsScreen.tsx']
+          },
+          {
+            id: 'mobpay', x: 580, y: 360, w: 240, h: 130, shape: 'rect', palette: 'blue',
+            title: 'MobilePaymentsFlow', sub: 'Menu (Prepaid / Postpaid / Pay again)\n-> Top Up (03xxxxxxxxx)\n-> Jazz / Telenor / Ufone / Zong',
+            badge: 'In-Frame 5-Screen',
+            desc: 'Full telco recharge & postpaid bill workflow with brand badges and Pay Again history tracking.',
+            files: ['mobile/src/components/MobilePaymentsFlow.tsx']
+          },
+          {
+            id: 'qrtab', x: 290, y: 520, w: 250, h: 110, shape: 'rect', palette: 'blue',
+            title: 'Tab 3: ScanQrScreen', sub: 'expo-camera Live QR Scanner\n+ Manual IBAN Entry -> Pay Modal',
+            badge: 'QR Payments',
+            desc: 'Parses iban=/name= query params or hostnames from scanned QR codes.',
+            files: ['mobile/src/components/ScanQrScreen.tsx']
+          },
+          {
+            id: 'moretab', x: 580, y: 520, w: 240, h: 110, shape: 'rect', palette: 'blue',
+            title: 'Tab 4: MoreScreen', sub: 'Profile, Email, Limit 400k, Docs,\nDevices, Raast ID, Close & Logout',
+            badge: 'Account & Compliance',
+            desc: 'Displays Sayyed Taimoor Shah profile and Raast alias 0311-2345678.',
+            files: ['mobile/src/components/MoreScreen.tsx']
+          },
+          {
+            id: 'dormant1', x: 890, y: 120, w: 205, h: 145, shape: 'rect', palette: 'purple',
+            title: 'AI Copilot Components', sub: 'AiAgentSpace (Home Card)\nAiWorkspaceModal (Chat + Steps)\nPinScreen (4-digit PIN)',
+            badge: 'Unmounted in index.tsx',
+            desc: 'Imported in index.tsx with state hooks defined, but not currently rendered in JSX output.',
+            files: ['mobile/src/components/AiAgentSpace.tsx', 'mobile/src/components/AiWorkspaceModal.tsx', 'mobile/src/components/PinScreen.tsx']
+          },
+          {
+            id: 'dormant2', x: 890, y: 330, w: 205, h: 145, shape: 'rect', palette: 'purple',
+            title: 'PFM Insights Modals', sub: 'AnalyticsModal (/analytics)\nBudgetsModal (Local State)\nSavingsGoalsModal (Quick +5K)',
+            badge: 'No Trigger in MoreScreen',
+            desc: 'Mounted in index.tsx and passed as callback props to MoreScreen, awaiting UI row triggers.',
+            files: ['mobile/src/components/AnalyticsModal.tsx', 'mobile/src/components/BudgetsModal.tsx', 'mobile/src/components/SavingsGoalsModal.tsx']
+          }
+        ],
+        edges: [
+          { from: 'login', to: 'bnav', label: 'PIN 12333' },
+          { from: 'bnav', to: 'pers', label: 'tab 1' },
+          { from: 'bnav', to: 'paytab', label: 'tab 2' },
+          { from: 'bnav', to: 'qrtab', label: 'tab 3' },
+          { from: 'bnav', to: 'moretab', label: 'tab 4' },
+          { from: 'pers', to: 'cards', label: 'BalanceCard' },
+          { from: 'pers', to: 'sendreq', label: 'Send/Request' },
+          { from: 'pers', to: 'txmodals', label: 'Load / See all' },
+          { from: 'paytab', to: 'mobpay', label: 'Mobile' },
+          { from: 'moretab', to: 'login', label: 'Log out' }
+        ]
+      },
+      {
+        id: '05_database_er_architecture',
+        tabLabel: '5. Database ER (16 Models)',
+        title: 'Prisma SQLite Relational Data Architecture (16 Models)',
+        subtitle: 'Grouped by Identity, Double-Entry Ledger, Personal Finance (PFM), and AI/Audit Governance',
+        width: 1120,
+        height: 660,
+        overview: {
+          title: 'Complete Relational Schema Overview',
+          badge: '16 Prisma Models',
+          desc: 'All models cascade safely from User (with AuditLog using SetNull) and enforce unique keys on accountNumber, iban, transaction.reference, and idempotencyKey.',
+          files: ['backend/prisma/schema.prisma', 'backend/prisma/seed.ts']
+        },
+        zones: [
+          { id: 'zd1', x: 25, y: 25, w: 245, h: 610, label: 'Identity & Cards', color: '#1971c2' },
+          { id: 'zd2', x: 295, y: 25, w: 270, h: 610, label: 'Core Ledger & Transfers', color: '#2f9e44' },
+          { id: 'zd3', x: 590, y: 25, w: 245, h: 610, label: 'PFM & Subscriptions', color: '#f08c00' },
+          { id: 'zd4', x: 860, y: 25, w: 235, h: 610, label: 'AI & Audit Trail', color: '#6741d9' }
+        ],
+        nodes: [
+          {
+            id: 'm_user', x: 45, y: 75, w: 205, h: 110, shape: 'cylinder', palette: 'blue',
+            title: 'User', sub: 'id, email*, phone*,\nname, pinHash, status',
+            badge: 'Root Entity',
+            desc: 'Root owner of accounts, cards, beneficiaries, budgets, saving goals, notifications, agent sessions, and audit logs.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_account', x: 45, y: 240, w: 205, h: 115, shape: 'cylinder', palette: 'blue',
+            title: 'Account', sub: 'accountNumber*, iban*,\nbalance, lockedBalance,\ncurrency, isDefault, status',
+            badge: '1:N from User',
+            desc: 'Primary checking/savings balances with lockedBalance hold tracking.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_card', x: 45, y: 405, w: 205, h: 100, shape: 'cylinder', palette: 'cyan',
+            title: 'Card', sub: 'cardNumberMasked, cardType,\nnetwork, isFrozen, dailyLimit',
+            badge: 'User + Account',
+            desc: 'Linked payment cards (VIRTUAL / PHYSICAL) with real-time freeze flag and daily limit.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_notif', x: 45, y: 535, w: 205, h: 80, shape: 'cylinder', palette: 'cyan',
+            title: 'Notification', sub: 'title, message, type, isRead',
+            badge: 'User Alerts',
+            desc: 'SECURITY, TRANSACTION, AI_AGENT, and SYSTEM notifications.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_tx', x: 320, y: 75, w: 220, h: 120, shape: 'cylinder', palette: 'green',
+            title: 'Transaction', sub: 'amount, type (DEBIT/CREDIT),\ncategory, reference*,\nidempotencyKey*, status',
+            badge: 'Account Ledger Header',
+            desc: 'Normalized record of debits and credits across transfers, bills, salary, food, etc.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_ledger', x: 320, y: 245, w: 220, h: 110, shape: 'cylinder', palette: 'green',
+            title: 'LedgerEntry', sub: 'transactionId, accountId,\ntype, amount, balanceAfter, ref',
+            badge: 'Immutable Journal',
+            desc: 'Atomic double-entry debit and credit rows storing running balanceAfter per account.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_transfer', x: 320, y: 400, w: 220, h: 115, shape: 'cylinder', palette: 'green',
+            title: 'Transfer', sub: 'recipientAccount, amount, fee,\nstatus, idempotencyKey*, approvalId',
+            badge: 'Remittance Record',
+            desc: 'Tracks P2P/external transfers and links back to HITL approvalId when AI-initiated.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_benef', x: 320, y: 540, w: 220, h: 75, shape: 'cylinder', palette: 'yellow',
+            title: 'Beneficiary', sub: 'name, accountNumber, bankName, isFavorite',
+            badge: 'Payees',
+            desc: 'Saved contacts queried by TransactionAgent & Transfer UI.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_budget', x: 610, y: 75, w: 205, h: 105, shape: 'cylinder', palette: 'yellow',
+            title: 'Budget', sub: 'month ("2026-11"),\ntotalLimit, totalSpent, alertThreshold',
+            badge: 'Monthly Cap',
+            desc: 'Top-level monthly spending ceiling with 0.8 default alert threshold.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_bcat', x: 610, y: 230, w: 205, h: 95, shape: 'cylinder', palette: 'yellow',
+            title: 'BudgetCategory', sub: 'category, allocatedAmount,\nspentAmount',
+            badge: '1:N from Budget',
+            desc: 'Per-category envelopes (FOOD, SHOPPING, BILLS, UTILITIES, ENTERTAINMENT).',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_goal', x: 610, y: 375, w: 205, h: 100, shape: 'cylinder', palette: 'yellow',
+            title: 'SavingGoal', sub: 'name, targetAmount,\ncurrentAmount, deadline, status',
+            badge: 'Savings Tracker',
+            desc: 'Automatically shifts ACTIVE -> COMPLETED upon deposit reaching targetAmount.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_rec', x: 610, y: 515, w: 205, h: 100, shape: 'cylinder', palette: 'yellow',
+            title: 'RecurringTransaction', sub: 'merchantName, expectedAmount,\nfrequency, nextDate, status',
+            badge: 'Subscriptions',
+            desc: 'Audited by SubscriptionAgent for upcoming 7-day charges and annual run rate.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_asess', x: 878, y: 70, w: 200, h: 85, shape: 'cylinder', palette: 'purple',
+            title: 'AgentSession', sub: 'title, status (ACTIVE/ARCHIVED)',
+            badge: 'Copilot Thread',
+            desc: 'Groups conversational turns and proposed actions per user.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_amsg', x: 878, y: 185, w: 200, h: 85, shape: 'cylinder', palette: 'purple',
+            title: 'AgentMessage', sub: 'role, content, metadata JSON',
+            badge: 'Transcript & Steps',
+            desc: 'Stores workflowSteps, diagnostics, and action links as JSON metadata.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_aact', x: 878, y: 300, w: 200, h: 100, shape: 'cylinder', palette: 'red',
+            title: 'AgentAction', sub: 'actionType, status, payload,\nresult, requiredApproval, expiresAt',
+            badge: 'HITL Queue',
+            desc: 'Tracks PLANNED -> AWAITING_APPROVAL -> EXECUTING -> COMPLETED/REJECTED.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_aapp', x: 878, y: 425, w: 200, h: 85, shape: 'cylinder', palette: 'red',
+            title: 'AgentApproval', sub: 'status, approvalMethod (PIN/MANUAL)',
+            badge: 'Audit Sign-Off',
+            desc: 'Records user authorization timestamp and remarks per action.',
+            files: ['backend/prisma/schema.prisma']
+          },
+          {
+            id: 'm_audit', x: 878, y: 535, w: 200, h: 85, shape: 'cylinder', palette: 'red',
+            title: 'AuditLog', sub: 'actorType, action, entityType,\ndetails JSON, ipAddress',
+            badge: 'Compliance Log',
+            desc: 'Records USER, AI_AGENT, and SYSTEM mutations across all entities.',
+            files: ['backend/prisma/schema.prisma']
+          }
+        ],
+        edges: [
+          { from: 'm_user', to: 'm_account', label: '1:N' },
+          { from: 'm_account', to: 'm_card', label: '1:N' },
+          { from: 'm_account', to: 'm_tx', label: '1:N' },
+          { from: 'm_tx', to: 'm_ledger', label: '1:N' },
+          { from: 'm_account', to: 'm_transfer', label: 'sender' },
+          { from: 'm_budget', to: 'm_bcat', label: '1:N' },
+          { from: 'm_asess', to: 'm_amsg', label: '1:N' },
+          { from: 'm_asess', to: 'm_aact', label: '1:N' },
+          { from: 'm_aact', to: 'm_aapp', label: '1:N' }
+        ]
+      },
+      {
+        id: '06_web_emulator_containment',
+        tabLabel: '6. Web Emulator & AdaptiveModal',
+        title: 'Responsive Web Showcase & Zero-Leakage Modal Containment Architecture',
+        subtitle: 'Viewport Breakpoints + AdaptiveModal Portal Prevention + Ice Glassmorphism Styling',
+        width: 1120,
+        height: 620,
+        overview: {
+          title: 'Desktop Phone Chassis & Cross-Platform Modals',
+          badge: 'Responsive Architecture',
+          desc: 'Prevents React Native Web <Modal> from leaking outside the centered 412px phone emulator frame onto desktop viewports using AdaptiveModal and global.css fixed-position clamping.',
+          files: ['mobile/src/app/_layout.tsx', 'mobile/src/components/AdaptiveModal.tsx', 'mobile/src/global.css']
+        },
+        zones: [
+          { id: 'zw1', x: 25, y: 30, w: 340, h: 560, label: 'Viewport Breakpoint Engine (_layout.tsx)', color: '#1971c2' },
+          { id: 'zw2', x: 395, y: 30, w: 340, h: 560, label: 'Phone Chassis & Side Card UI', color: '#0c8599' },
+          { id: 'zw3', x: 765, y: 30, w: 330, h: 560, label: 'Modal Containment Layer', color: '#e03131' }
+        ],
+        nodes: [
+          {
+            id: 'dim', x: 50, y: 80, w: 290, h: 95, shape: 'diamond', palette: 'cyan',
+            title: 'useWindowDimensions()', sub: 'Platform.OS === "web" &\nwidth > 520 / width >= 860',
+            badge: 'Breakpoint Check',
+            desc: 'Dynamically computes frameHeight = Math.min(height - 40, 860) and selects Native Fullscreen, Medium Web Frame, or Wide Desktop Showcase.',
+            files: ['mobile/src/app/_layout.tsx']
+          },
+          {
+            id: 'mobfull', x: 50, y: 230, w: 290, h: 90, shape: 'rect', palette: 'green',
+            title: 'Native / Narrow Web (<= 520px)', sub: '100% Full Viewport Stack\nbackgroundColor: #EDF5FC',
+            badge: 'iOS / Android / Mob Web',
+            desc: 'Renders Expo Router Stack directly without desktop emulator chrome.',
+            files: ['mobile/src/app/_layout.tsx']
+          },
+          {
+            id: 'medweb', x: 50, y: 355, w: 290, h: 90, shape: 'rect', palette: 'blue',
+            title: 'Medium Web (520 < w < 860)', sub: 'Top Pill Banner: PIN 12333\n+ Account title: FinPilot',
+            badge: 'Tablet Showcase',
+            desc: 'Places compact credential pill directly above the centered 412px phone chassis.',
+            files: ['mobile/src/app/_layout.tsx']
+          },
+          {
+            id: 'wideweb', x: 50, y: 475, w: 290, h: 90, shape: 'rect', palette: 'purple',
+            title: 'Wide Desktop (w >= 860px)', sub: 'Side Card (320px): FinPilot Emulator,\nPIN [1][2][3][3][3] + Copy + v1.0',
+            badge: 'Desktop Showcase',
+            desc: 'Row layout centering the frosted side credential panel beside the phone chassis.',
+            files: ['mobile/src/app/_layout.tsx']
+          },
+          {
+            id: 'chassis', x: 420, y: 85, w: 290, h: 165, shape: 'rect', palette: 'blue',
+            title: 'Frosted Phone Chassis', sub: 'width: 412px, borderRadius: 44px\noverflow: hidden, position: relative\nborder: rgba(255,255,255,0.65)\nspeakerNotch zIndex: 99999',
+            badge: 'Hardware Shell',
+            desc: 'Relative positioning + overflow hidden forms the containing block clamping all in-frame absolute modal overlays.',
+            files: ['mobile/src/app/_layout.tsx']
+          },
+          {
+            id: 'cssrules', x: 420, y: 310, w: 290, h: 145, shape: 'rect', palette: 'yellow',
+            title: 'global.css Fallback Guard', sub: '.ice-glass-card backdrop-filter\n@media (min-width: 520px)\ndiv[style*="position: fixed"] clamp',
+            badge: 'CSS Failsafe',
+            desc: 'Forces any fixed React Native Web portal node to max 412x860 centered with 44px rounded corners.',
+            files: ['mobile/src/global.css']
+          },
+          {
+            id: 'adaptive', x: 790, y: 95, w: 280, h: 120, shape: 'diamond', palette: 'red',
+            title: 'AdaptiveModal Platform Switch', sub: 'if (!visible) return null;\nPlatform.OS === "web" ?',
+            badge: 'Modal Wrapper',
+            desc: 'Replaces raw React Native <Modal> across 9+ components so overlays stay inside the phone emulator.',
+            files: ['mobile/src/components/AdaptiveModal.tsx']
+          },
+          {
+            id: 'weboverlay', x: 790, y: 270, w: 280, h: 120, shape: 'rect', palette: 'cyan',
+            title: 'Web Path: In-Chassis Overlay', sub: '<View style={{ position: "absolute",\ntop:0, left:0, right:0, bottom:0,\nzIndex: 99999 }}>',
+            badge: 'Zero Portal Escape',
+            desc: 'Used by LoadMoneyModal, Analytics, Budgets, SavingsGoals, AllTransactions, TransactionDetail, PaymentsScreen, MoreScreen, ScanQrScreen, PinScreen, AiWorkspace.',
+            files: ['mobile/src/components/AdaptiveModal.tsx', 'mobile/src/components/SendRequestModal.tsx']
+          },
+          {
+            id: 'nativeoverlay', x: 790, y: 440, w: 280, h: 100, shape: 'rect', palette: 'green',
+            title: 'Native Path: <Modal>', sub: 'Standard iOS / Android Modal\nwith slide/fade animationType',
+            badge: 'iOS / Android Native',
+            desc: 'Preserves hardware back button & native sheet animations on physical devices.',
+            files: ['mobile/src/components/AdaptiveModal.tsx']
+          }
+        ],
+        edges: [
+          { from: 'dim', to: 'mobfull', label: '<=520' },
+          { from: 'dim', to: 'medweb', label: '520..859' },
+          { from: 'dim', to: 'wideweb', label: '>=860' },
+          { from: 'medweb', to: 'chassis', label: 'renders' },
+          { from: 'wideweb', to: 'chassis', label: 'side-by-side' },
+          { from: 'chassis', to: 'adaptive', label: 'hosts modals' },
+          { from: 'adaptive', to: 'weboverlay', label: 'web' },
+          { from: 'adaptive', to: 'nativeoverlay', label: 'native' },
+          { from: 'cssrules', to: 'chassis', label: 'styles & clamps' }
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 2. EXCALIDRAW HAND-DRAWN SKETCH RENDERER (Pure Vanilla SVG, Zero CDN)
+    // =========================================================================
+    function mulberry32(a) {
+      return function() {
+        var t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function strSeed(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function sketchLinePath(x1, y1, x2, y2, rng, roughness = 1.6) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const midX = (x1 + x2) / 2 + (rng() - 0.5) * roughness * Math.min(4, len * 0.04);
+      const midY = (y1 + y2) / 2 + (rng() - 0.5) * roughness * Math.min(4, len * 0.04);
+      const j = () => (rng() - 0.5) * roughness;
+      const p1 = `M ${(x1 + j()).toFixed(1)} ${(y1 + j()).toFixed(1)} Q ${(midX + j()).toFixed(1)} ${(midY + j()).toFixed(1)} ${(x2 + j()).toFixed(1)} ${(y2 + j()).toFixed(1)}`;
+      const p2 = `M ${(x1 + j() * 0.8).toFixed(1)} ${(y1 + j() * 0.8).toFixed(1)} Q ${(midX - j()).toFixed(1)} ${(midY - j()).toFixed(1)} ${(x2 + j() * 0.8).toFixed(1)} ${(y2 + j() * 0.8).toFixed(1)}`;
+      return [p1, p2];
+    }
+
+    function getPalettes(isLight) {
+      return isLight ? {
+        blue:   { fill: '#d0ebff', stroke: '#1971c2', text: '#0f172a', sub: '#334155' },
+        green:  { fill: '#d3f9d8', stroke: '#2f9e44', text: '#0f172a', sub: '#334155' },
+        red:    { fill: '#ffe3e3', stroke: '#e03131', text: '#0f172a', sub: '#334155' },
+        purple: { fill: '#e5dbff', stroke: '#6741d9', text: '#0f172a', sub: '#334155' },
+        yellow: { fill: '#fff3bf', stroke: '#f08c00', text: '#0f172a', sub: '#334155' },
+        cyan:   { fill: '#c5f6fa', stroke: '#0c8599', text: '#0f172a', sub: '#334155' },
+        arrow:  '#475569',
+        arrowTextBg: '#ffffff',
+        zoneBg: 'rgba(241, 245, 249, 0.55)'
+      } : {
+        blue:   { fill: 'rgba(25, 113, 194, 0.25)', stroke: '#74c0fc', text: '#f8fafc', sub: '#cbd5e1' },
+        green:  { fill: 'rgba(47, 158, 68, 0.24)', stroke: '#8ce99a', text: '#f8fafc', sub: '#cbd5e1' },
+        red:    { fill: 'rgba(224, 49, 49, 0.24)', stroke: '#ffa8a8', text: '#f8fafc', sub: '#cbd5e1' },
+        purple: { fill: 'rgba(103, 65, 217, 0.26)', stroke: '#b197fc', text: '#f8fafc', sub: '#cbd5e1' },
+        yellow: { fill: 'rgba(240, 140, 0, 0.22)', stroke: '#ffd43b', text: '#f8fafc', sub: '#cbd5e1' },
+        cyan:   { fill: 'rgba(12, 133, 153, 0.25)', stroke: '#66d9e8', text: '#f8fafc', sub: '#cbd5e1' },
+        arrow:  '#94a3b8',
+        arrowTextBg: '#0f172a',
+        zoneBg: 'rgba(15, 23, 42, 0.45)'
+      };
+    }
+
+    function renderDiagramSVG(diagram, selectedNodeId) {
+      const svg = document.getElementById('sketch-svg');
+      const isLight = document.documentElement.classList.contains('light');
+      const viewport = document.getElementById('canvas-viewport');
+      viewport.classList.toggle('canvas-grid-light', isLight);
+      viewport.classList.toggle('canvas-grid-dark', !isLight);
+
+      const palettes = getPalettes(isLight);
+      const ns = 'http://www.w3.org/2000/svg';
+      svg.innerHTML = '';
+
+      const rootG = document.createElementNS(ns, 'g');
+      rootG.setAttribute('id', 'pan-zoom-layer');
+      rootG.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+      svg.appendChild(rootG);
+
+      // Title banner on canvas
+      const titleText = document.createElementNS(ns, 'text');
+      titleText.setAttribute('x', 28);
+      titleText.setAttribute('y', 16);
+      titleText.setAttribute('fill', isLight ? '#0f172a' : '#f1f5f9');
+      titleText.setAttribute('font-size', '14');
+      titleText.setAttribute('font-weight', '700');
+      titleText.setAttribute('class', 'sketch-font');
+      titleText.textContent = diagram.title;
+      rootG.appendChild(titleText);
+
+      // 1. Zones (Dashed Excalidraw containers)
+      (diagram.zones || []).forEach((z) => {
+        const zRect = document.createElementNS(ns, 'rect');
+        zRect.setAttribute('x', z.x);
+        zRect.setAttribute('y', z.y);
+        zRect.setAttribute('width', z.w);
+        zRect.setAttribute('height', z.h);
+        zRect.setAttribute('rx', 16);
+        zRect.setAttribute('fill', palettes.zoneBg);
+        zRect.setAttribute('stroke', z.color);
+        zRect.setAttribute('stroke-width', '1.6');
+        zRect.setAttribute('stroke-dasharray', '7 5');
+        rootG.appendChild(zRect);
+
+        const zLabel = document.createElementNS(ns, 'text');
+        zLabel.setAttribute('x', z.x + 14);
+        zLabel.setAttribute('y', z.y + 22);
+        zLabel.setAttribute('fill', isLight ? z.color : '#e2e8f0');
+        zLabel.setAttribute('font-size', '13');
+        zLabel.setAttribute('font-weight', '700');
+        zLabel.setAttribute('class', 'sketch-font');
+        zLabel.textContent = z.label;
+        rootG.appendChild(zLabel);
+      });
+
+      // Map nodes for edge anchors
+      const nodeMap = {};
+      diagram.nodes.forEach((n) => { nodeMap[n.id] = n; });
+
+      // 2. Hand-Drawn Sketch Edges & Arrowheads
+      (diagram.edges || []).forEach((edge, idx) => {
+        const src = nodeMap[edge.from];
+        const dst = nodeMap[edge.to];
+        if (!src || !dst) return;
+
+        const sCx = src.x + src.w / 2;
+        const sCy = src.y + src.h / 2;
+        const dCx = dst.x + dst.w / 2;
+        const dCy = dst.y + dst.h / 2;
+
+        // Choose closest side centers
+        let x1 = sCx, y1 = sCy, x2 = dCx, y2 = dCy;
+        const dx = dCx - sCx;
+        const dy = dCy - sCy;
+
+        if (Math.abs(dx) > Math.abs(dy) * 0.9) {
+          if (dx > 0) { x1 = src.x + src.w; x2 = dst.x; }
+          else { x1 = src.x; x2 = dst.x + dst.w; }
+        } else {
+          if (dy > 0) { y1 = src.y + src.h; y2 = dst.y; }
+          else { y1 = src.y; y2 = dst.y + dst.h; }
+        }
+
+        const rng = mulberry32(strSeed(diagram.id + edge.from + edge.to + idx));
+        const paths = sketchLinePath(x1, y1, x2, y2, rng, 1.4);
+
+        paths.forEach((d, pi) => {
+          const p = document.createElementNS(ns, 'path');
+          p.setAttribute('d', d);
+          p.setAttribute('fill', 'none');
+          p.setAttribute('stroke', palettes.arrow);
+          p.setAttribute('stroke-width', pi === 0 ? '1.8' : '1.1');
+          p.setAttribute('stroke-linecap', 'round');
+          rootG.appendChild(p);
+        });
+
+        // Arrowhead
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const headLen = 9;
+        const ax1 = x2 - headLen * Math.cos(angle - Math.PI / 7);
+        const ay1 = y2 - headLen * Math.sin(angle - Math.PI / 7);
+        const ax2 = x2 - headLen * Math.cos(angle + Math.PI / 7);
+        const ay2 = y2 - headLen * Math.sin(angle + Math.PI / 7);
+
+        const head = document.createElementNS(ns, 'path');
+        head.setAttribute('d', `M ${ax1.toFixed(1)} ${ay1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} L ${ax2.toFixed(1)} ${ay2.toFixed(1)}`);
+        head.setAttribute('fill', 'none');
+        head.setAttribute('stroke', palettes.arrow);
+        head.setAttribute('stroke-width', '2');
+        head.setAttribute('stroke-linecap', 'round');
+        head.setAttribute('stroke-linejoin', 'round');
+        rootG.appendChild(head);
+
+        if (edge.label) {
+          const lx = (x1 + x2) / 2;
+          const ly = (y1 + y2) / 2;
+          const bgW = edge.label.length * 6.5 + 10;
+          const lblBg = document.createElementNS(ns, 'rect');
+          lblBg.setAttribute('x', lx - bgW / 2);
+          lblBg.setAttribute('y', ly - 9);
+          lblBg.setAttribute('width', bgW);
+          lblBg.setAttribute('height', 16);
+          lblBg.setAttribute('rx', 4);
+          lblBg.setAttribute('fill', palettes.arrowTextBg);
+          lblBg.setAttribute('opacity', '0.88');
+          rootG.appendChild(lblBg);
+
+          const lbl = document.createElementNS(ns, 'text');
+          lbl.setAttribute('x', lx);
+          lbl.setAttribute('y', ly + 3);
+          lbl.setAttribute('text-anchor', 'middle');
+          lbl.setAttribute('font-size', '10.5');
+          lbl.setAttribute('fill', palettes.arrow);
+          lbl.setAttribute('class', 'sketch-font');
+          lbl.textContent = edge.label;
+          rootG.appendChild(lbl);
+        }
+      });
+
+      // 3. Hand-Drawn Nodes
+      diagram.nodes.forEach((n) => {
+        const pal = palettes[n.palette] || palettes.blue;
+        const isSelected = n.id === selectedNodeId;
+        const g = document.createElementNS(ns, 'g');
+        g.setAttribute('class', 'cursor-pointer');
+        g.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectNode(n);
+        });
+
+        const rng = mulberry32(strSeed(diagram.id + n.id));
+        const strokeCol = isSelected ? '#FA6854' : pal.stroke;
+        const strokeW = isSelected ? 3.2 : 2;
+
+        if (n.shape === 'diamond') {
+          const cx = n.x + n.w / 2;
+          const cy = n.y + n.h / 2;
+          const poly = document.createElementNS(ns, 'polygon');
+          poly.setAttribute('points', `${cx},${n.y} ${n.x + n.w},${cy} ${cx},${n.y + n.h} ${n.x},${cy}`);
+          poly.setAttribute('fill', pal.fill);
+          poly.setAttribute('stroke', 'none');
+          g.appendChild(poly);
+
+          [[cx, n.y, n.x + n.w, cy], [n.x + n.w, cy, cx, n.y + n.h], [cx, n.y + n.h, n.x, cy], [n.x, cy, cx, n.y]].forEach(([a, b, c, d]) => {
+            sketchLinePath(a, b, c, d, rng, 1.5).forEach((sp, i) => {
+              const p = document.createElementNS(ns, 'path');
+              p.setAttribute('d', sp);
+              p.setAttribute('fill', 'none');
+              p.setAttribute('stroke', strokeCol);
+              p.setAttribute('stroke-width', i === 0 ? strokeW : strokeW * 0.65);
+              g.appendChild(p);
+            });
+          });
+        } else if (n.shape === 'cylinder') {
+          const rx = n.w / 2;
+          const ry = 10;
+          const body = document.createElementNS(ns, 'path');
+          body.setAttribute('d', `M ${n.x} ${n.y + ry} L ${n.x} ${n.y + n.h - ry} A ${rx} ${ry} 0 0 0 ${n.x + n.w} ${n.y + n.h - ry} L ${n.x + n.w} ${n.y + ry} Z`);
+          body.setAttribute('fill', pal.fill);
+          body.setAttribute('stroke', strokeCol);
+          body.setAttribute('stroke-width', strokeW);
+          g.appendChild(body);
+
+          const topCap = document.createElementNS(ns, 'ellipse');
+          topCap.setAttribute('cx', n.x + rx);
+          topCap.setAttribute('cy', n.y + ry);
+          topCap.setAttribute('rx', rx);
+          topCap.setAttribute('ry', ry);
+          topCap.setAttribute('fill', pal.fill);
+          topCap.setAttribute('stroke', strokeCol);
+          topCap.setAttribute('stroke-width', strokeW);
+          g.appendChild(topCap);
+        } else {
+          const fillBox = document.createElementNS(ns, 'rect');
+          fillBox.setAttribute('x', n.x);
+          fillBox.setAttribute('y', n.y);
+          fillBox.setAttribute('width', n.w);
+          fillBox.setAttribute('height', n.h);
+          fillBox.setAttribute('rx', 10);
+          fillBox.setAttribute('fill', pal.fill);
+          g.appendChild(fillBox);
+
+          // Excalidraw sketchy edges (4 sides double pass)
+          const r = 6;
+          [
+            [n.x + r, n.y, n.x + n.w - r, n.y],
+            [n.x + n.w, n.y + r, n.x + n.w, n.y + n.h - r],
+            [n.x + n.w - r, n.y + n.h, n.x + r, n.y + n.h],
+            [n.x, n.y + n.h - r, n.x, n.y + r]
+          ].forEach(([a, b, c, d]) => {
+            sketchLinePath(a, b, c, d, rng, 1.3).forEach((sp, i) => {
+              const p = document.createElementNS(ns, 'path');
+              p.setAttribute('d', sp);
+              p.setAttribute('fill', 'none');
+              p.setAttribute('stroke', strokeCol);
+              p.setAttribute('stroke-width', i === 0 ? strokeW : strokeW * 0.6);
+              p.setAttribute('stroke-linecap', 'round');
+              g.appendChild(p);
+            });
+          });
+        }
+
+        // Title + multiline subtext
+        const lines = n.sub ? n.sub.split('\n') : [];
+        const totalLines = 1 + lines.length;
+        const startY = n.y + n.h / 2 - ((totalLines - 1) * 14) / 2 + 3;
+
+        const tEl = document.createElementNS(ns, 'text');
+        tEl.setAttribute('x', n.x + n.w / 2);
+        tEl.setAttribute('y', startY);
+        tEl.setAttribute('text-anchor', 'middle');
+        tEl.setAttribute('font-size', '13');
+        tEl.setAttribute('font-weight', '700');
+        tEl.setAttribute('fill', pal.text);
+        tEl.setAttribute('class', 'sketch-font');
+        tEl.textContent = n.title;
+        g.appendChild(tEl);
+
+        lines.forEach((line, li) => {
+          const sEl = document.createElementNS(ns, 'text');
+          sEl.setAttribute('x', n.x + n.w / 2);
+          sEl.setAttribute('y', startY + (li + 1) * 14.5);
+          sEl.setAttribute('text-anchor', 'middle');
+          sEl.setAttribute('font-size', '10.8');
+          sEl.setAttribute('fill', pal.sub);
+          sEl.setAttribute('class', 'sketch-font');
+          sEl.textContent = line;
+          g.appendChild(sEl);
+        });
+
+        rootG.appendChild(g);
+      });
+    }
+
+    // =========================================================================
+    // 3. EXCALIDRAW V2 JSON EXPORTER
+    // =========================================================================
+    function buildExcalidrawJSON(diagram) {
+      const elements = [];
+      let seedCounter = 1000;
+      const exPal = {
+        blue:   { bg: '#a5d8ff', st: '#1971c2' },
+        green:  { bg: '#b2f2bb', st: '#2f9e44' },
+        red:    { bg: '#ffc9c9', st: '#e03131' },
+        purple: { bg: '#d0bfff', st: '#6741d9' },
+        yellow: { bg: '#ffec99', st: '#f08c00' },
+        cyan:   { bg: '#99e9f2', st: '#0c8599' }
+      };
+
+      const base = () => ({
+        angle: 0,
+        fillStyle: 'hachure',
+        strokeWidth: 2,
+        strokeStyle: 'solid',
+        roughness: 1,
+        opacity: 100,
+        groupIds: [],
+        frameId: null,
+        seed: seedCounter += 17,
+        version: 1,
+        versionNonce: seedCounter + 99,
+        isDeleted: false,
+        boundElements: null,
+        updated: Date.now(),
+        link: null,
+        locked: false
+      });
+
+      (diagram.zones || []).forEach((z) => {
+        elements.push({
+          ...base(),
+          id: `zone_${z.id}`,
+          type: 'rectangle',
+          x: z.x,
+          y: z.y,
+          width: z.w,
+          height: z.h,
+          strokeColor: z.color,
+          backgroundColor: 'transparent',
+          fillStyle: 'solid',
+          strokeStyle: 'dashed',
+          roundness: { type: 3 }
+        });
+        elements.push({
+          ...base(),
+          id: `zone_txt_${z.id}`,
+          type: 'text',
+          x: z.x + 14,
+          y: z.y + 8,
+          width: 240,
+          height: 22,
+          strokeColor: z.color,
+          backgroundColor: 'transparent',
+          text: z.label,
+          fontSize: 16,
+          fontFamily: 1,
+          textAlign: 'left',
+          verticalAlign: 'top',
+          baseline: 14,
+          containerId: null,
+          originalText: z.label,
+          lineHeight: 1.25
+        });
+      });
+
+      const nodeMap = {};
+      const shapeElemMap = {};
+      diagram.nodes.forEach((n) => {
+        nodeMap[n.id] = n;
+        const col = exPal[n.palette] || exPal.blue;
+        const shapeId = `node_${n.id}`;
+        const txtId = `txt_${n.id}`;
+        const label = n.sub ? `${n.title}\n${n.sub}` : n.title;
+
+        const shapeEl = {
+          ...base(),
+          id: shapeId,
+          type: n.shape === 'diamond' ? 'diamond' : 'rectangle',
+          x: n.x,
+          y: n.y,
+          width: n.w,
+          height: n.h,
+          strokeColor: col.st,
+          backgroundColor: col.bg,
+          roundness: n.shape === 'diamond' ? { type: 2 } : { type: 3 },
+          boundElements: [{ type: 'text', id: txtId }]
+        };
+        shapeElemMap[n.id] = shapeEl;
+        elements.push(shapeEl);
+
+        elements.push({
+          ...base(),
+          id: txtId,
+          type: 'text',
+          x: n.x + 10,
+          y: n.y + 12,
+          width: n.w - 20,
+          height: n.h - 24,
+          strokeColor: '#1e293b',
+          backgroundColor: 'transparent',
+          text: label,
+          fontSize: 13,
+          fontFamily: 1,
+          textAlign: 'center',
+          verticalAlign: 'middle',
+          baseline: 12,
+          containerId: shapeId,
+          originalText: label,
+          lineHeight: 1.25
+        });
+      });
+
+      (diagram.edges || []).forEach((e, idx) => {
+        const s = nodeMap[e.from];
+        const d = nodeMap[e.to];
+        if (!s || !d) return;
+
+        const sCx = s.x + s.w / 2;
+        const sCy = s.y + s.h / 2;
+        const dCx = d.x + d.w / 2;
+        const dCy = d.y + d.h / 2;
+        let x1 = sCx, y1 = sCy, x2 = dCx, y2 = dCy;
+        const dxCenter = dCx - sCx;
+        const dyCenter = dCy - sCy;
+
+        if (Math.abs(dxCenter) > Math.abs(dyCenter) * 0.9) {
+          if (dxCenter > 0) { x1 = s.x + s.w; x2 = d.x; }
+          else { x1 = s.x; x2 = d.x + d.w; }
+        } else {
+          if (dyCenter > 0) { y1 = s.y + s.h; y2 = d.y; }
+          else { y1 = s.y; y2 = d.y + d.h; }
+        }
+
+        const arrowId = `arrow_${idx}`;
+        const arrowBound = [];
+        if (e.label) {
+          const arrowTxtId = `arrow_txt_${idx}`;
+          arrowBound.push({ type: 'text', id: arrowTxtId });
+        }
+
+        if (shapeElemMap[e.from]) {
+          shapeElemMap[e.from].boundElements.push({ type: 'arrow', id: arrowId });
+        }
+        if (shapeElemMap[e.to]) {
+          shapeElemMap[e.to].boundElements.push({ type: 'arrow', id: arrowId });
+        }
+
+        elements.push({
+          ...base(),
+          id: arrowId,
+          type: 'arrow',
+          x: x1,
+          y: y1,
+          width: Math.abs(x2 - x1),
+          height: Math.abs(y2 - y1),
+          strokeColor: '#495057',
+          backgroundColor: 'transparent',
+          points: [[0, 0], [x2 - x1, y2 - y1]],
+          startBinding: { elementId: `node_${e.from}`, focus: 0, gap: 4 },
+          endBinding: { elementId: `node_${e.to}`, focus: 0, gap: 4 },
+          boundElements: arrowBound.length ? arrowBound : null,
+          startArrowhead: null,
+          endArrowhead: 'arrow'
+        });
+
+        if (e.label) {
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
+          const labelW = Math.max(40, e.label.length * 8);
+          elements.push({
+            ...base(),
+            id: `arrow_txt_${idx}`,
+            type: 'text',
+            x: midX - labelW / 2,
+            y: midY - 9,
+            width: labelW,
+            height: 18,
+            strokeColor: '#495057',
+            backgroundColor: '#ffffff',
+            text: e.label,
+            fontSize: 12,
+            fontFamily: 1,
+            textAlign: 'center',
+            verticalAlign: 'middle',
+            baseline: 11,
+            containerId: arrowId,
+            originalText: e.label,
+            lineHeight: 1.25
+          });
+        }
+      });
+
+      return JSON.stringify({
+        type: 'excalidraw',
+        version: 2,
+        source: 'FinPilot v1.0 Architecture Studio',
+        elements,
+        appState: { gridSize: 20, viewBackgroundColor: '#ffffff' },
+        files: {}
+      }, null, 2);
+    }
+
+    // =========================================================================
+    // 4. INTERACTIVITY, PAN/ZOOM & THEME SYNC
+    // =========================================================================
+    let activeDiagram = DIAGRAMS[0];
+    let selectedNode = null;
+    let scale = 0.85;
+    let panX = 16;
+    let panY = 20;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    function fitDiagram() {
+      const vp = document.getElementById('canvas-viewport');
+      const rect = vp.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const sx = (rect.width - 32) / activeDiagram.width;
+        const sy = (rect.height - 40) / activeDiagram.height;
+        scale = Math.max(0.45, Math.min(1.15, Math.min(sx, sy)));
+        panX = Math.max(12, (rect.width - activeDiagram.width * scale) / 2);
+        panY = 24;
+      } else {
+        scale = 0.82;
+        panX = 16;
+        panY = 24;
+      }
+      updateTransform();
+    }
+
+    function updateTransform() {
+      const layer = document.getElementById('pan-zoom-layer');
+      if (layer) {
+        layer.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+      }
+      document.getElementById('zoom-readout').textContent = `${Math.round(scale * 100)}%`;
+    }
+
+    function selectNode(node) {
+      selectedNode = node || activeDiagram.overview;
+      document.getElementById('inspector-title').textContent = selectedNode.title;
+      document.getElementById('inspector-badge').textContent = selectedNode.badge || 'Architecture';
+      document.getElementById('inspector-desc').textContent = selectedNode.desc;
+      const list = document.getElementById('inspector-files');
+      list.innerHTML = '';
+      (selectedNode.files || []).forEach((f) => {
+        const li = document.createElement('li');
+        li.className = 'px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] break-all';
+        li.textContent = f;
+        list.appendChild(li);
+      });
+      renderDiagramSVG(activeDiagram, node ? node.id : null);
+    }
+
+    function switchDiagram(diagram) {
+      activeDiagram = diagram;
+      selectedNode = null;
+      document.getElementById('diagram-subtitle').textContent = diagram.subtitle;
+      renderTabs();
+      fitDiagram();
+      selectNode(null);
+    }
+
+    function renderTabs() {
+      const nav = document.getElementById('diagram-tabs');
+      nav.innerHTML = '';
+      DIAGRAMS.forEach((d) => {
+        const btn = document.createElement('button');
+        const active = d.id === activeDiagram.id;
+        btn.className = active
+          ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] cursor-pointer'
+          : 'px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] hover:opacity-80 cursor-pointer';
+        btn.textContent = d.tabLabel;
+        btn.addEventListener('click', () => switchDiagram(d));
+        nav.appendChild(btn);
+      });
+    }
+
+    // Pan & Zoom Handlers
+    const vpEl = document.getElementById('canvas-viewport');
+    vpEl.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStartX = e.clientX - panX;
+      dragStartY = e.clientY - panY;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - dragStartX;
+      panY = e.clientY - dragStartY;
+      updateTransform();
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    vpEl.addEventListener('click', () => selectNode(null));
+    vpEl.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.08 : -0.08;
+      scale = Math.max(0.35, Math.min(2.0, scale + delta));
+      updateTransform();
+    }, { passive: false });
+
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      scale = Math.min(2.0, scale + 0.12);
+      updateTransform();
+    });
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      scale = Math.max(0.35, scale - 0.12);
+      updateTransform();
+    });
+    document.getElementById('zoom-reset').addEventListener('click', fitDiagram);
+
+    document.getElementById('btn-download-json').addEventListener('click', () => {
+      const json = buildExcalidrawJSON(activeDiagram);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeDiagram.id}.excalidraw`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('btn-copy-json').addEventListener('click', async () => {
+      const json = buildExcalidrawJSON(activeDiagram);
+      const btn = document.getElementById('btn-copy-json');
+      try {
+        await navigator.clipboard.writeText(json);
+        btn.textContent = 'Copied Excalidraw JSON!';
+        setTimeout(() => { btn.textContent = 'Copy .excalidraw JSON'; }, 1800);
+      } catch {
+        btn.textContent = 'Use Download button';
+      }
+    });
+
+    window.addEventListener('themechange', () => {
+      renderDiagramSVG(activeDiagram, selectedNode ? selectedNode.id : null);
+    });
+
+    // Init
+    switchDiagram(DIAGRAMS[0]);
+    window.addEventListener('resize', fitDiagram);
+  </script>
+</body>
+</html>
