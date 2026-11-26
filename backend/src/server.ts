@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+dotenv.config();
+
+import { env } from './config/env.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { internalAiRouter } from './ai/internal-ai.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { accountsRouter } from './modules/accounts/accounts.routes.js';
 import { transactionsRouter } from './modules/transactions/transactions.routes.js';
@@ -17,7 +21,7 @@ import { auditRouter } from './modules/audit/audit.routes.js';
 dotenv.config();
 
 export const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = env.PORT;
 
 // Middleware
 app.use(cors());
@@ -51,6 +55,7 @@ app.use('/api/cards', cardsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/ai', aiAgentRouter);
 app.use('/api/audit', auditRouter);
+app.use('/internal/ai', internalAiRouter);
 
 // Global Error Handler
 app.use(errorHandler);

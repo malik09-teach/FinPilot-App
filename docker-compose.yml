@@ -1,0 +1,49 @@
+services:
+  backend:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - sqlite_data:/app/prisma/data
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      DATABASE_URL: file:/app/prisma/data/dev.db
+      JWT_SECRET: ${JWT_SECRET:-finpilot-jwt-secret-key}
+      AI_ENGINE: ${AI_ENGINE:-python}
+      AGENT_SERVICE_URL: http://agent-service:8000
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:-dev-agent-service-token}
+      AGENT_CONTEXT_SECRET: ${AGENT_CONTEXT_SECRET:-dev-agent-context-secret-change-in-prod}
+      AGENT_CONTEXT_TTL_SECONDS: ${AGENT_CONTEXT_TTL_SECONDS:-120}
+    command: sh -c "npx prisma generate && npx prisma db push --skip-generate && npm run dev"
+    networks:
+      - finpilot_internal
+
+  agent-service:
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      APP_ENV: ${NODE_ENV:-development}
+      BACKEND_BASE_URL: http://backend:4000
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:-dev-agent-service-token}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL_ROUTER: ${GROQ_MODEL_ROUTER:-}
+      GROQ_MODEL_AGENT: ${GROQ_MODEL_AGENT:-}
+      GROQ_TIMEOUT_SECONDS: ${GROQ_TIMEOUT_SECONDS:-30}
+      GROQ_MAX_RETRIES: ${GROQ_MAX_RETRIES:-3}
+    depends_on:
+      - backend
+    networks:
+      - finpilot_internal
+
+volumes:
+  sqlite_data:
+
+networks:
+  finpilot_internal:
+    driver: bridge

@@ -8,6 +8,14 @@ class ApiClient {
     this.token = token;
   }
 
+  getToken(): string | null {
+    return this.token;
+  }
+
+  getBaseUrl(): string {
+    return BASE_URL;
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

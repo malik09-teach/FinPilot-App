@@ -1,17 +1,71 @@
+import { z } from 'zod';
 import { prisma } from '../../config/prisma.js';
 import { AccountsService } from '../../modules/accounts/accounts.service.js';
 import { TransactionsService } from '../../modules/transactions/transactions.service.js';
 import { TransfersService } from '../../modules/transfers/transfers.service.js';
 import { AuditService } from '../../modules/audit/audit.service.js';
+import { FraudDetectionAgent } from '../agents/fraud.agent.js';
 
 export interface ToolDefinition {
   name: string;
   type: 'READ' | 'DRAFT' | 'RESTRICTED';
   description: string;
+  schema: z.ZodTypeAny;
   parameters: Record<string, unknown>;
   requiresApproval: boolean;
   execute: (userId: string, args: any) => Promise<any>;
 }
+
+const emptySchema = z.object({});
+
+const getTransactionsSchema = z.object({
+  category: z.string().optional().describe('Optional transaction category filter'),
+  limit: z.number().int().min(1).max(50).optional().describe('Max number of transactions to return'),
+});
+
+const createBudgetDraftSchema = z.object({
+  totalLimit: z.number().positive().describe('Total monthly budget limit in PKR'),
+  categories: z
+    .array(
+      z.object({
+        category: z.string().min(1),
+        allocatedAmount: z.number().nonnegative(),
+      })
+    )
+    .min(1)
+    .describe('Category-wise budget allocations in PKR'),
+});
+
+const createSavingsGoalDraftSchema = z.object({
+  name: z.string().min(1).describe('Name of the savings goal'),
+  targetAmount: z.number().positive().describe('Target savings amount in PKR'),
+  durationMonths: z.number().int().min(1).max(600).describe('Timeframe in months'),
+  monthlyContribution: z.number().positive().optional().describe('Optional monthly deposit in PKR'),
+});
+
+const createTransferDraftSchema = z.object({
+  recipientName: z.string().min(1).describe('Recipient full name'),
+  recipientAccount: z.string().min(4).describe('Recipient account number'),
+  amount: z.number().positive().describe('Transfer amount in PKR'),
+  note: z.string().max(200).optional().describe('Optional transfer note'),
+});
+
+const createFreezeCardDraftSchema = z.object({
+  reason: z.string().min(3).max(300).optional().describe('Reason for precautionary card freeze'),
+});
+
+const executeApprovedTransferSchema = z.object({
+  actionId: z.string(),
+  approvalId: z.string(),
+  recipientName: z.string(),
+  recipientAccount: z.string(),
+  amount: z.number(),
+  note: z.string().optional(),
+});
+
+const freezeCardSchema = z.object({
+  cardId: z.string().optional(),
+});
 
 export const toolRegistry: Record<string, ToolDefinition> = {
   // --- READ TOOLS ---
@@ -19,6 +73,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_account_balance',
     type: 'READ',
     description: 'Retrieve the current and available balance for user accounts',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -30,6 +85,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_transactions',
     type: 'READ',
     description: 'Retrieve recent or filtered transactions history',
+    schema: getTransactionsSchema,
     parameters: {
       type: 'object',
       properties: {
@@ -50,6 +106,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_spending_analytics',
     type: 'READ',
     description: 'Retrieve aggregated financial analysis, income vs expenses, and spending breakdown',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -61,6 +118,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_income_summary',
     type: 'READ',
     description: 'Retrieve income transactions and monthly average earnings',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -78,6 +136,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_expense_summary',
     type: 'READ',
     description: 'Retrieve expense transactions grouped by category',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -98,6 +157,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_budget_progress',
     type: 'READ',
     description: 'Retrieve current active budget, total limit, spending progress, and categories',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -114,6 +174,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_savings_goals',
     type: 'READ',
     description: 'Retrieve active savings goals, target amounts, current saved progress, and deadlines',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -128,6 +189,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_recurring_transactions',
     type: 'READ',
     description: 'Retrieve recurring monthly and weekly subscriptions and automated bills',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -144,6 +206,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'get_beneficiaries',
     type: 'READ',
     description: 'Retrieve saved payees, colleagues, and favorite transfer recipients',
+    schema: emptySchema,
     parameters: { type: 'object', properties: {} },
     requiresApproval: false,
     execute: async (userId: string) => {
@@ -154,11 +217,24 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     },
   },
 
+  get_fraud_risk_assessment: {
+    name: 'get_fraud_risk_assessment',
+    type: 'READ',
+    description: 'Inspect recent transactions for velocity spikes and anomalies and return a risk score',
+    schema: emptySchema,
+    parameters: { type: 'object', properties: {} },
+    requiresApproval: false,
+    execute: async (userId: string) => {
+      return await FraudDetectionAgent.inspectTransactions(userId);
+    },
+  },
+
   // --- DRAFT TOOLS (Creates proposals requiring user confirmation) ---
   create_budget_draft: {
     name: 'create_budget_draft',
     type: 'DRAFT',
     description: 'Draft a recommended budget plan with category limits',
+    schema: createBudgetDraftSchema,
     parameters: {
       type: 'object',
       properties: {
@@ -167,7 +243,10 @@ export const toolRegistry: Record<string, ToolDefinition> = {
       },
     },
     requiresApproval: true,
-    execute: async (userId: string, args: { totalLimit: number; categories: Array<{ category: string; allocatedAmount: number }> }) => {
+    execute: async (
+      _userId: string,
+      args: { totalLimit: number; categories: Array<{ category: string; allocatedAmount: number }> }
+    ) => {
       return {
         draftType: 'BUDGET_PLAN',
         proposedTotalLimit: args.totalLimit,
@@ -181,6 +260,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'create_savings_goal_draft',
     type: 'DRAFT',
     description: 'Draft a structured savings plan goal with target amount, timeframe, and suggested monthly deposit',
+    schema: createSavingsGoalDraftSchema,
     parameters: {
       type: 'object',
       properties: {
@@ -191,7 +271,10 @@ export const toolRegistry: Record<string, ToolDefinition> = {
       },
     },
     requiresApproval: true,
-    execute: async (userId: string, args: { name: string; targetAmount: number; durationMonths: number; monthlyContribution?: number }) => {
+    execute: async (
+      _userId: string,
+      args: { name: string; targetAmount: number; durationMonths: number; monthlyContribution?: number }
+    ) => {
       const monthly = args.monthlyContribution || Math.ceil(args.targetAmount / Math.max(1, args.durationMonths));
       const targetDate = new Date();
       targetDate.setMonth(targetDate.getMonth() + args.durationMonths);
@@ -212,6 +295,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'create_transfer_draft',
     type: 'DRAFT',
     description: 'Draft a money transfer after validating limits, recipient, and balance',
+    schema: createTransferDraftSchema,
     parameters: {
       type: 'object',
       properties: {
@@ -222,8 +306,10 @@ export const toolRegistry: Record<string, ToolDefinition> = {
       },
     },
     requiresApproval: true,
-    execute: async (userId: string, args: { recipientName: string; recipientAccount: string; amount: number; note?: string }) => {
-      // Validate transfer safely first
+    execute: async (
+      userId: string,
+      args: { recipientName: string; recipientAccount: string; amount: number; note?: string }
+    ) => {
       const validation = await TransfersService.validateTransfer({
         userId,
         recipientName: args.recipientName,
@@ -249,11 +335,39 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     },
   },
 
+  create_freeze_card_draft: {
+    name: 'create_freeze_card_draft',
+    type: 'DRAFT',
+    description: 'Create a precautionary card freeze proposal requiring user PIN confirmation',
+    schema: createFreezeCardDraftSchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string' },
+      },
+    },
+    requiresApproval: true,
+    execute: async (userId: string, args?: { reason?: string }) => {
+      const card = await prisma.card.findFirst({ where: { userId } });
+      if (!card) {
+        throw new Error('No active card found for this account');
+      }
+      return {
+        draftType: 'FREEZE_CARD',
+        cardId: card.id,
+        cardNumberMasked: card.cardNumberMasked,
+        reason: args?.reason || 'Precautionary freeze due to suspected risk anomaly',
+        summary: `Precautionary Freeze for ${card.network} ending in ${card.cardNumberMasked.slice(-4)}`,
+      };
+    },
+  },
+
   // --- RESTRICTED TOOLS (Enforces explicit approval & permission checks) ---
   execute_approved_transfer: {
     name: 'execute_approved_transfer',
     type: 'RESTRICTED',
     description: 'Executes a pre-approved transfer through the banking core with atomic double-entry verification',
+    schema: executeApprovedTransferSchema,
     parameters: {
       type: 'object',
       properties: {
@@ -266,8 +380,10 @@ export const toolRegistry: Record<string, ToolDefinition> = {
       },
     },
     requiresApproval: true,
-    execute: async (userId: string, args: { actionId: string; approvalId: string; recipientName: string; recipientAccount: string; amount: number; note?: string }) => {
-      // Enforce server-side verification: action must be in APPROVED state
+    execute: async (
+      userId: string,
+      args: { actionId: string; approvalId: string; recipientName: string; recipientAccount: string; amount: number; note?: string }
+    ) => {
       const action = await prisma.agentAction.findUnique({
         where: { id: args.actionId },
       });
@@ -280,7 +396,6 @@ export const toolRegistry: Record<string, ToolDefinition> = {
         throw new Error(`Cannot execute transfer. Action status is ${action.status}, not APPROVED.`);
       }
 
-      // Execute transfer with banking core
       const result = await TransfersService.executeTransfer({
         userId,
         recipientName: args.recipientName,
@@ -299,6 +414,7 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     name: 'freeze_card',
     type: 'RESTRICTED',
     description: 'Freeze or unfreeze a payment card for fraud prevention and security',
+    schema: freezeCardSchema,
     parameters: {
       type: 'object',
       properties: {
@@ -338,3 +454,30 @@ export const toolRegistry: Record<string, ToolDefinition> = {
     },
   },
 };
+
+export interface ToolManifestEntry {
+  name: string;
+  description: string;
+  risk: 'READ' | 'DRAFT';
+  parameters: Record<string, unknown>;
+}
+
+/**
+ * Returns JSON-Schema tool manifest for READ and DRAFT tools only.
+ * RESTRICTED tools are never exposed.
+ */
+export function getToolManifest(): ToolManifestEntry[] {
+  return Object.values(toolRegistry)
+    .filter((tool): tool is ToolDefinition & { type: 'READ' | 'DRAFT' } => tool.type !== 'RESTRICTED')
+    .map((tool) => {
+      const jsonSchema = z.toJSONSchema(tool.schema) as Record<string, unknown>;
+      // Remove $schema key for cleaner Groq/OpenAI function parameter objects
+      const { $schema: _ignored, ...parameters } = jsonSchema;
+      return {
+        name: tool.name,
+        description: tool.description,
+        risk: tool.type,
+        parameters,
+      };
+    });
+}

@@ -113,6 +113,9 @@ export default function FinPilotMainApp() {
               onSeeAll={() => setShowAllTxModal(true)}
               onSelectTransaction={(tx) => setSelectedTx(tx)}
             />
+
+            {/* AI Copilot Section with Example Prompts */}
+            <AiAgentSpace onOpenAiWorkspace={openAiWithPrompt} />
           </ScrollView>
         )}
 
@@ -179,6 +182,13 @@ export default function FinPilotMainApp() {
       <SavingsGoalsModal
         visible={showSavingsModal}
         onClose={() => setShowSavingsModal(false)}
+      />
+
+      {/* AI Copilot Workspace Modal */}
+      <AiWorkspaceModal
+        visible={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        initialPrompt={aiInitialPrompt}
       />
     </View>
   );

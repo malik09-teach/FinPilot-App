@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { AgentOrchestrator } from '../../ai/orchestrator.js';
+import { PythonGatewayService } from '../../ai/python-gateway.service.js';
 import { AiAgentService } from './ai-agent.service.js';
 import { AuthRequest } from '../../middleware/auth.js';
 
@@ -21,12 +21,26 @@ export class AiAgentController {
   static async chat(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const data = chatSchema.parse(req.body);
-      const result = await AgentOrchestrator.handleUserRequest({
+      const result = await PythonGatewayService.chatJson({
         userId: req.user!.userId,
         sessionId: data.sessionId,
         message: data.message,
       });
       res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async chatStream(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const data = chatSchema.parse(req.body);
+      await PythonGatewayService.streamChat({
+        userId: req.user!.userId,
+        sessionId: data.sessionId,
+        message: data.message,
+        res,
+      });
     } catch (err) {
       next(err);
     }

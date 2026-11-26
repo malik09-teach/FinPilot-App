@@ -8,6 +8,9 @@ import { AdaptiveModal } from './AdaptiveModal';
 interface PinScreenProps {
   visible: boolean;
   onSuccess: () => void;
+  onSubmitPin?: (pin: string) => void;
+  onCancel?: () => void;
+  pinLength?: number;
   title?: string;
   subtitle?: string;
   requireApiVerification?: boolean;
@@ -16,6 +19,9 @@ interface PinScreenProps {
 export const PinScreen: React.FC<PinScreenProps> = ({
   visible,
   onSuccess,
+  onSubmitPin,
+  onCancel,
+  pinLength = 4,
   title = 'Enter Security PIN',
   subtitle = 'Provide your 4-digit PIN to authenticate',
   requireApiVerification = false,
@@ -25,12 +31,18 @@ export const PinScreen: React.FC<PinScreenProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
 
   const handleKeyPress = async (val: string) => {
-    if (pin.length >= 4) return;
+    if (pin.length >= pinLength) return;
     const newPin = pin + val;
     setPin(newPin);
     setErrorMsg('');
 
-    if (newPin.length === 4) {
+    if (newPin.length === pinLength) {
+      if (onSubmitPin) {
+        const submitted = newPin;
+        setPin('');
+        onSubmitPin(submitted);
+        return;
+      }
       if (requireApiVerification) {
         setIsVerifying(true);
         try {
@@ -149,11 +161,24 @@ export const PinScreen: React.FC<PinScreenProps> = ({
             ))}
           </View>
 
-          {/* Demo unlock helper */}
-          <TouchableOpacity onPress={handleQuickDemo} style={styles.demoUnlockBtn}>
-            <Sparkles size={14} color={colors.tealPrimary} />
-            <Text style={styles.demoUnlockText}>Quick Demo Auto-Unlock (1234)</Text>
-          </TouchableOpacity>
+          {/* Demo unlock helper (only shown when not in strict onSubmitPin mode) */}
+          {!onSubmitPin ? (
+            <TouchableOpacity onPress={handleQuickDemo} style={styles.demoUnlockBtn}>
+              <Sparkles size={14} color={colors.tealPrimary} />
+              <Text style={styles.demoUnlockText}>Quick Demo Auto-Unlock (1234)</Text>
+            </TouchableOpacity>
+          ) : onCancel ? (
+            <TouchableOpacity
+              onPress={() => {
+                setPin('');
+                onCancel();
+              }}
+              style={styles.demoUnlockBtn}
+              accessibilityLabel="Cancel PIN entry"
+            >
+              <Text style={styles.demoUnlockText}>Cancel</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </AdaptiveModal>

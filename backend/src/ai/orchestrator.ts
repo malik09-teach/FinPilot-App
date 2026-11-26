@@ -40,6 +40,7 @@ export class AgentOrchestrator {
     userId: string;
     sessionId?: string;
     message: string;
+    skipUserMessagePersist?: boolean;
   }): Promise<OrchestrationResult> {
     const { userId, message } = params;
 
@@ -61,14 +62,16 @@ export class AgentOrchestrator {
       });
     }
 
-    // Save user message in session
-    await prisma.agentMessage.create({
-      data: {
-        sessionId: session.id,
-        role: 'USER',
-        content: message,
-      },
-    });
+    // Save user message in session unless already persisted by gateway
+    if (!params.skipUserMessagePersist) {
+      await prisma.agentMessage.create({
+        data: {
+          sessionId: session.id,
+          role: 'USER',
+          content: message,
+        },
+      });
+    }
 
     const lower = message.toLowerCase();
 

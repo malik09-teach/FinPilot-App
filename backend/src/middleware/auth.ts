@@ -17,7 +17,11 @@ export interface AuthRequest extends Request {
 export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // For demo / hackathon convenience, fallback to demo user if no token provided or allow header
+    if (process.env.NODE_ENV === 'production') {
+      res.status(401).json({ success: false, error: 'Authentication required' });
+      return;
+    }
+    // For demo / hackathon convenience in non-production, fallback to demo user
     const demoUserId = (req.headers['x-demo-user-id'] as string) || 'usr_temoor_01';
     req.user = {
       userId: demoUserId,

@@ -1,0 +1,7 @@
+{"prompt": "What is my balance?", "expected_specialist": "financial_analyst", "expected_tool": "get_account_balance"}
+{"prompt": "Send PKR 5,000 to Ali Khan", "expected_specialist": "transaction", "expected_tool": "create_transfer_draft"}
+{"prompt": "I want to save PKR 100,000 in 4 months", "expected_specialist": "goal_planning", "expected_tool": "create_savings_goal_draft"}
+{"prompt": "Am I over budget this month?", "expected_specialist": "budget", "expected_tool": "get_budget_progress"}
+{"prompt": "Check for suspicious or fraud transactions", "expected_specialist": "fraud", "expected_tool": "get_fraud_risk_assessment"}
+{"prompt": "Show my Netflix and Spotify subscriptions", "expected_specialist": "subscription", "expected_tool": "get_recurring_transactions"}
+{"prompt": "Summarize my spending this month", "expected_specialist": "financial_analyst", "expected_tool": "get_spending_analytics"}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,27 +6,19 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Sparkles, Send, X, Square, RotateCcw } from 'lucide-react-native';
 import { AdaptiveModal } from './AdaptiveModal';
-import {
-  Sparkles,
-  Send,
-  X,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  ShieldCheck,
-  TrendingUp,
-  CreditCard,
-  Lock,
-} from 'lucide-react-native';
-import { colors } from '../theme/colors';
-import { api } from '../services/api';
-import { useBankStore } from '../store/bank-store';
 import { PinScreen } from './PinScreen';
+import { ChatMessageBubble } from './ai/ChatMessageBubble';
+import { ToolActivityChip } from './ai/ToolActivityChip';
+import { ApprovalCard } from './ai/ApprovalCard';
+import { SuggestedPrompts } from './ai/SuggestedPrompts';
+import { useAiChat } from '../hooks/useAiChat';
+import { AI_PIN_LENGTH, AiActionCardData } from '../store/ai-store';
+import { colors } from '../theme/colors';
 
 interface AiWorkspaceModalProps {
   visible: boolean;
@@ -34,134 +26,54 @@ interface AiWorkspaceModalProps {
   initialPrompt?: string;
 }
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  workflowSteps?: Array<{
-    step: number;
-    title: string;
-    agent: string;
-    status: string;
-  }>;
-  action?: any;
-}
-
 export const AiWorkspaceModal: React.FC<AiWorkspaceModalProps> = ({
   visible,
   onClose,
   initialPrompt,
 }) => {
-  const { loadInitialData } = useBankStore();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome_01',
-      role: 'assistant',
-      content:
-        'Hello Syed! I am FinPilot, your autonomous banking copilot. I coordinate specialized agents for transaction preparation, budget optimization, fraud auditing, and goal planning.\n\nTry asking:\n• "Save PKR 100,000 in four months"\n• "Send PKR 5,000 to Ali"\n• "Check for fraud or unusual transactions"\n• "Analyze my monthly spending and subscriptions"',
-    },
-  ]);
-  const [inputText, setInputText] = useState(initialPrompt || '');
-  const [isLoading, setIsLoading] = useState(false);
-  const [approvingAction, setApprovingAction] = useState<any | null>(null);
-  const [showPinModal, setShowPinModal] = useState(false);
+  const {
+    messages,
+    isStreaming,
+    activeTools,
+    error,
+    canRetry,
+    sendMessage,
+    stopStreaming,
+    retryLast,
+    approveAction,
+    rejectAction,
+  } = useAiChat();
 
-  // Trigger initial prompt if provided
-  React.useEffect(() => {
+  const [inputText, setInputText] = useState(initialPrompt || '');
+  const [pendingPinAction, setPendingPinAction] = useState<AiActionCardData | null>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+
+  useEffect(() => {
     if (visible && initialPrompt) {
       setInputText(initialPrompt);
     }
   }, [visible, initialPrompt]);
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = textToSend || inputText;
-    if (!text.trim() || isLoading) return;
+  const handleSend = (overrideText?: string) => {
+    const text = (overrideText ?? inputText).trim();
+    if (!text || isStreaming) return;
+    if (!overrideText) setInputText('');
+    void sendMessage(text);
+  };
 
-    const userMsg: Message = {
-      id: `usr_${Date.now()}`,
-      role: 'user',
-      content: text,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInputText('');
-    setIsLoading(true);
-
-    try {
-      const res = await api.sendAiMessage(text);
-      const assistantMsg: Message = {
-        id: `ast_${Date.now()}`,
-        role: 'assistant',
-        content: res.assistantMessage,
-        workflowSteps: res.workflowSteps,
-        action: res.action,
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err: any) {
-      // Intelligent fallback response if backend isn't answering
-      const assistantMsg: Message = {
-        id: `ast_${Date.now()}`,
-        role: 'assistant',
-        content: `I analyzed your request for "${text}". I have prepared the plan according to your current balance and spending patterns.`,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-    } finally {
-      setIsLoading(false);
+  const handleApprovePress = (action: AiActionCardData) => {
+    if (action.requiresPin) {
+      setPendingPinAction(action);
+    } else {
+      void approveAction(action.id);
     }
   };
 
-  const handleApproveClicked = (action: any) => {
-    setApprovingAction(action);
-    setShowPinModal(true);
-  };
-
-  const handlePinSuccess = async () => {
-    setShowPinModal(false);
-    if (!approvingAction) return;
-
-    setIsLoading(true);
-    try {
-      const res = await api.approveAiAction(approvingAction.id, '1234');
-      await loadInitialData();
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `done_${Date.now()}`,
-          role: 'assistant',
-          content: `✅ Action Approved & Executed!\n\n${approvingAction.actionType} was authorized and posted to the double-entry ledger. Your balance and transactions have been updated.`,
-        },
-      ]);
-      setApprovingAction(null);
-    } catch (e: any) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err_${Date.now()}`,
-          role: 'assistant',
-          content: `Could not complete execution: ${e.message}`,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRejectClicked = async (action: any) => {
-    try {
-      await api.rejectAiAction(action.id, 'Declined by user in workspace');
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `rej_${Date.now()}`,
-          role: 'assistant',
-          content: `❌ The proposed ${action.actionType} action was cancelled. No changes have been made.`,
-        },
-      ]);
-    } catch (e: any) {
-      console.warn(e);
-    }
+  const handlePinSubmitted = (enteredPin: string) => {
+    const target = pendingPinAction;
+    setPendingPinAction(null);
+    if (!target) return;
+    void approveAction(target.id, enteredPin);
   };
 
   return (
@@ -170,128 +82,76 @@ export const AiWorkspaceModal: React.FC<AiWorkspaceModalProps> = ({
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Workspace Top Bar */}
+        {/* Top Bar */}
         <View style={styles.topBar}>
           <View style={styles.brandContainer}>
             <View style={styles.logoBox}>
               <Sparkles size={20} color="#FFFFFF" />
             </View>
             <View>
-              <Text style={styles.workspaceTitle}>FinPilot Agent Workspace</Text>
-              <Text style={styles.workspaceSubtitle}>Multi-Agent Orchestrator Active</Text>
+              <Text style={styles.workspaceTitle}>FinPilot AI Copilot</Text>
+              <Text style={styles.workspaceSubtitle}>
+                {isStreaming ? 'Thinking & checking...' : 'Ready to assist'}
+              </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Close AI Copilot"
+          >
             <X size={20} color={colors.textDark} />
           </TouchableOpacity>
         </View>
 
         {/* Message Thread */}
-        <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatContent}>
-          {messages.map((msg) => {
-            const isUser = msg.role === 'user';
-            return (
-              <View
-                key={msg.id}
-                style={[
-                  styles.messageBubble,
-                  isUser ? styles.userBubble : styles.assistantBubble,
-                ]}
-              >
-                {!isUser ? (
-                  <View style={styles.assistantHeader}>
-                    <Sparkles size={14} color={colors.tealPrimary} />
-                    <Text style={styles.assistantTag}>FinPilot Orchestrator</Text>
-                  </View>
-                ) : null}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.chatScroll}
+          contentContainerStyle={styles.chatContent}
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        >
+          {messages.map((msg) => (
+            <ChatMessageBubble key={msg.id} message={msg}>
+              {msg.action ? (
+                <ApprovalCard
+                  action={msg.action}
+                  onApprove={handleApprovePress}
+                  onReject={(act) => void rejectAction(act.id)}
+                />
+              ) : null}
+            </ChatMessageBubble>
+          ))}
 
-                <Text
-                  style={[
-                    styles.messageText,
-                    isUser ? styles.userText : styles.assistantText,
-                  ]}
+          {activeTools.length > 0 ? (
+            <View style={styles.toolsRow}>
+              {activeTools.map((chip) => (
+                <ToolActivityChip key={chip.tool} chip={chip} />
+              ))}
+            </View>
+          ) : null}
+
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{error}</Text>
+              {canRetry ? (
+                <TouchableOpacity
+                  onPress={retryLast}
+                  style={styles.retryBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry last message"
                 >
-                  {msg.content}
-                </Text>
-
-                {/* Workflow Visualization Steps */}
-                {msg.workflowSteps && msg.workflowSteps.length > 0 ? (
-                  <View style={styles.workflowContainer}>
-                    <Text style={styles.workflowHeader}>ORCHESTRATED WORKFLOW PIPELINE</Text>
-                    {msg.workflowSteps.map((step) => {
-                      const isComplete = step.status === 'COMPLETED';
-                      const isAwaiting = step.status === 'AWAITING_APPROVAL';
-
-                      return (
-                        <View key={step.step} style={styles.stepRow}>
-                          <View
-                            style={[
-                              styles.stepBullet,
-                              isComplete && styles.stepBulletDone,
-                              isAwaiting && styles.stepBulletWait,
-                            ]}
-                          >
-                            {isComplete ? (
-                              <CheckCircle2 size={12} color="#FFFFFF" />
-                            ) : (
-                              <Clock size={12} color="#FFFFFF" />
-                            )}
-                          </View>
-                          <View style={styles.stepInfo}>
-                            <Text style={styles.stepTitle}>
-                              {step.step}. {step.title}
-                            </Text>
-                            <Text style={styles.stepAgent}>Agent: {step.agent}</Text>
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : null}
-
-                {/* Agent Action Card Awaiting User Approval */}
-                {msg.action && msg.action.status === 'AWAITING_APPROVAL' ? (
-                  <View style={styles.actionCard}>
-                    <View style={styles.actionCardHeader}>
-                      <ShieldCheck size={18} color={colors.tealPrimary} />
-                      <Text style={styles.actionTypeBadge}>{msg.action.actionType}</Text>
-                      <View style={styles.awaitingBadge}>
-                        <Text style={styles.awaitingText}>AWAITING PIN</Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.actionSummary}>{msg.action.summary}</Text>
-
-                    {/* Action buttons */}
-                    <View style={styles.actionBtnRow}>
-                      <TouchableOpacity
-                        onPress={() => handleRejectClicked(msg.action)}
-                        style={styles.declineBtn}
-                      >
-                        <Text style={styles.declineText}>Decline</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => handleApproveClicked(msg.action)}
-                        style={styles.approveBtn}
-                      >
-                        <Lock size={14} color="#FFFFFF" />
-                        <Text style={styles.approveText}>Approve with PIN</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
-
-          {isLoading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color={colors.tealPrimary} size="small" />
-              <Text style={styles.loadingText}>Agents coordinating workflow...</Text>
+                  <RotateCcw size={14} color={colors.tealPrimary} />
+                  <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : null}
         </ScrollView>
+
+        {/* Suggested Prompts */}
+        <SuggestedPrompts onSelect={(p) => handleSend(p)} disabled={isStreaming} />
 
         {/* Input Bar */}
         <View style={styles.inputContainer}>
@@ -299,30 +159,44 @@ export const AiWorkspaceModal: React.FC<AiWorkspaceModalProps> = ({
             style={styles.textInput}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Ask FinPilot (e.g. Save 100K in 4 mo, Send 5K)..."
-            placeholderTextColor="#94A3B8"
-            onSubmitEditing={() => handleSendMessage()}
+            placeholder="Ask FinPilot (e.g. Save 100K, Send 2,000)..."
+            placeholderTextColor={colors.textMuted}
+            onSubmitEditing={() => handleSend()}
             returnKeyType="send"
+            editable={!isStreaming}
+            accessibilityLabel="AI Copilot message input"
           />
-          <TouchableOpacity
-            onPress={() => handleSendMessage()}
-            disabled={!inputText.trim() || isLoading}
-            style={[
-              styles.sendBtn,
-              (!inputText.trim() || isLoading) && styles.sendBtnDisabled,
-            ]}
-          >
-            <Send size={18} color="#FFFFFF" />
-          </TouchableOpacity>
+          {isStreaming ? (
+            <TouchableOpacity
+              onPress={stopStreaming}
+              style={styles.stopBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Stop generating"
+            >
+              <Square size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => handleSend()}
+              disabled={!inputText.trim()}
+              style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
+            >
+              <Send size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* PIN Authorization Modal */}
+        {/* PIN Authorization Modal (no hardcoded PIN; clears immediately after submit) */}
         <PinScreen
-          visible={showPinModal}
-          onSuccess={handlePinSuccess}
+          visible={Boolean(pendingPinAction)}
+          pinLength={AI_PIN_LENGTH}
+          onSuccess={() => undefined}
+          onSubmitPin={handlePinSubmitted}
+          onCancel={() => setPendingPinAction(null)}
           title="Authorize Agent Action"
-          subtitle={`Enter your 4-digit PIN to approve ${approvingAction?.actionType || 'transaction'}`}
-          requireApiVerification={false}
+          subtitle={`Enter your ${AI_PIN_LENGTH}-digit PIN to approve ${pendingPinAction?.actionType.replace(/_/g, ' ') || 'action'}`}
         />
       </KeyboardAvoidingView>
     </AdaptiveModal>
@@ -332,18 +206,18 @@ export const AiWorkspaceModal: React.FC<AiWorkspaceModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
+    backgroundColor: colors.backgroundFrost,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border,
   },
   brandContainer: {
     flexDirection: 'row',
@@ -381,196 +255,60 @@ const styles = StyleSheet.create({
   },
   chatContent: {
     padding: 16,
-    gap: 14,
+    gap: 12,
   },
-  messageBubble: {
-    maxWidth: '92%',
-    padding: 16,
-    borderRadius: 20,
+  toolsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.coralAccent,
-    borderBottomRightRadius: 4,
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    padding: 12,
+    gap: 10,
   },
-  assistantBubble: {
-    alignSelf: 'flex-start',
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.danger,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
   },
-  assistantHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  assistantTag: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.tealPrimary,
-    textTransform: 'uppercase',
-  },
-  messageText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  userText: {
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  assistantText: {
-    color: colors.textDark,
-  },
-  workflowContainer: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    gap: 8,
-  },
-  workflowHeader: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-    marginBottom: 4,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  stepBullet: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  stepBulletDone: {
-    backgroundColor: colors.tealPrimary,
-  },
-  stepBulletWait: {
-    backgroundColor: colors.coralAccent,
-  },
-  stepInfo: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textDark,
-  },
-  stepAgent: {
-    fontSize: 11,
-    color: '#64748B',
-  },
-  actionCard: {
-    marginTop: 14,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    padding: 14,
-  },
-  actionCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  actionTypeBadge: {
+  retryText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textDark,
-  },
-  awaitingBadge: {
-    marginLeft: 'auto',
-    backgroundColor: '#FFEBE8',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  awaitingText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.coralAccent,
-  },
-  actionSummary: {
-    fontSize: 13,
-    color: colors.textDark,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  actionBtnRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  declineBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  declineText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  approveBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.tealPrimary,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  approveText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  loadingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    alignSelf: 'center',
-    paddingVertical: 12,
-  },
-  loadingText: {
-    fontSize: 13,
     color: colors.tealPrimary,
-    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    backgroundColor: '#FFFFFF',
+    padding: 12,
+    backgroundColor: colors.backgroundFrost,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border,
     gap: 10,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 11,
     fontSize: 14,
     color: colors.textDark,
   },
@@ -583,6 +321,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: colors.textMuted,
+  },
+  stopBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.coralAccent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

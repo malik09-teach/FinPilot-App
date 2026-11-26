@@ -7,6 +7,7 @@ export const aiAgentRouter = Router();
 aiAgentRouter.use(authenticate);
 
 aiAgentRouter.post('/chat', AiAgentController.chat);
+aiAgentRouter.post('/chat/stream', AiAgentController.chatStream);
 aiAgentRouter.get('/sessions', AiAgentController.getSessions);
 aiAgentRouter.get('/sessions/:sessionId', AiAgentController.getSessionDetails);
 aiAgentRouter.get('/pending-actions', AiAgentController.getPendingActions);

@@ -23,8 +23,11 @@ import {
   ChevronRight,
   X,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react-native';
 import { useBankStore } from '../store/bank-store';
+import { useAiStore } from '../store/ai-store';
+import { AiWorkspaceModal } from './AiWorkspaceModal';
 
 interface MoreScreenProps {
   onOpenAnalytics?: () => void;
@@ -35,9 +38,11 @@ interface MoreScreenProps {
 
 export const MoreScreen: React.FC<MoreScreenProps> = ({ onLockApp }) => {
   const { user } = useBankStore();
+  const clearAiState = useAiStore((s) => s.clearAiState);
 
   // Active dialog modal
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [showAiCopilot, setShowAiCopilot] = useState(false);
   const [emailValue, setEmailValue] = useState('sayyed.taimoor@gmail.com');
   const [emailSaved, setEmailSaved] = useState(false);
 
@@ -54,6 +59,21 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onLockApp }) => {
         </View>
         <Text style={styles.profileName}>Sayyed Taimoor Shah</Text>
       </View>
+
+      {/* AI Copilot Entry */}
+      <TouchableOpacity
+        style={styles.cardRowButton}
+        activeOpacity={0.7}
+        onPress={() => setShowAiCopilot(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Open AI Copilot"
+      >
+        <View style={styles.greenIconCircle}>
+          <Sparkles size={19} color="#00D494" strokeWidth={2.2} />
+        </View>
+        <Text style={styles.rowTitle}>AI Copilot</Text>
+        <ChevronRight size={19} color="#94A3B8" />
+      </TouchableOpacity>
 
       {/* 2. Update Email Address */}
       <TouchableOpacity
@@ -202,6 +222,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onLockApp }) => {
         style={styles.cardRowButton}
         activeOpacity={0.7}
         onPress={() => {
+          clearAiState();
           if (onLockApp) {
             onLockApp();
           }
@@ -221,6 +242,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onLockApp }) => {
 
       {/* Interactive Modal Handler */}
       {renderDetailModal()}
+
+      {/* AI Copilot Modal */}
+      <AiWorkspaceModal
+        visible={showAiCopilot}
+        onClose={() => setShowAiCopilot(false)}
+      />
     </ScrollView>
   );
 
