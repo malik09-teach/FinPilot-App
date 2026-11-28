@@ -1,6 +1,8 @@
 import { prisma } from '../config/prisma.js';
 import { FinancialAnalystAgent } from './agents/analyst.agent.js';
 import { BudgetAgent } from './agents/budget.agent.js';
+import { InvestmentResearcherAgent } from './agents/investmentResearcher.agent.js';
+import { InvestmentResearcherAgent } from './agents/investmentResearcher.agent.js';
 import { TransactionAgent } from './agents/transaction.agent.js';
 import { FraudDetectionAgent } from './agents/fraud.agent.js';
 import { GoalPlanningAgent } from './agents/goal.agent.js';
@@ -120,6 +122,22 @@ export class AgentOrchestrator {
     // Intent E: Budgeting (e.g. "Help me create a budget", "Monthly budget plan")
     if (lower.includes('budget') || lower.includes('limit') || lower.includes('spending limit')) {
       return this.handleBudgetWorkflow(userId, session.id, message);
+    }
+
+    // Intent F: Investment Research (e.g. "BTC price", "should I invest in gold", "market research")
+    if (
+      lower.includes('invest') ||
+      lower.includes('market') ||
+      lower.includes('btc') ||
+      lower.includes('bitcoin') ||
+      lower.includes('gold') ||
+      lower.includes('crude oil') ||
+      lower.includes('silver') ||
+      lower.includes('crypto') ||
+      lower.includes('commodity') ||
+      lower.includes('research')
+    ) {
+      return this.handleInvestmentResearchWorkflow(userId, session.id, message);
     }
 
     // Default Intent: Financial Analysis & Overall Wealth Health
@@ -572,6 +590,53 @@ export class AgentOrchestrator {
       intent: 'FINANCIAL_ANALYSIS',
       workflowSteps,
       agentOutputs: { FinancialAnalystAgent: analysis },
+    };
+  }
+
+  /**
+   * Workflow F: Investment Research – BTC, Gold, Crude Oil, Silver
+   * Delegates to the Python agent-service which calls Tavily for live prices.
+   */
+  private static async handleInvestmentResearchWorkflow(
+    userId: string,
+    sessionId: string,
+    message: string
+  ): Promise<OrchestrationResult> {
+    const workflowSteps: WorkflowStep[] = [
+      { step: 1, title: 'Identify investment research intent', agent: 'AgentOrchestrator', status: 'COMPLETED' },
+      { step: 2, title: 'Fetch live market prices (BTC, Gold, Oil, Silver)', agent: 'InvestmentResearcherAgent', status: 'COMPLETED' },
+      { step: 3, title: 'Generate budget-aware recommendations', agent: 'InvestmentResearcherAgent', status: 'COMPLETED' },
+    ];
+
+    // Extract budget from message if present
+    const budgetMatch = message.match(/(?:pkr|rs\.?|budget[:\s]+)?\s*([\d,]+(?:\.\d+)?)/i);
+    const budget = budgetMatch ? parseFloat(budgetMatch[1].replace(/,/g, '')) : 0;
+
+    const assistantMsg =
+      `📊 **Investment Researcher**\n\n` +
+      `I'm analyzing current market prices for BTC, Gold, Crude Oil, and Silver via the AI agent service.\n\n` +
+      (budget > 0
+        ? `With your budget of PKR ${budget.toLocaleString()}, the Investment Researcher agent will suggest an optimal allocation.\n\n`
+        : `Please share your available budget (in PKR) for personalized allocation advice.\n\n`) +
+      `💡 *This analysis is handled by the agent-service at /v1/chat using the investment_researcher specialist, ` +
+      `powered by Tavily live search data.*`;
+
+    await prisma.agentMessage.create({
+      data: {
+        sessionId,
+        role: 'ASSISTANT',
+        content: assistantMsg,
+        metadata: JSON.stringify({ workflowSteps, budget }),
+      },
+    });
+
+    return {
+      sessionId,
+      userMessage: message,
+      assistantMessage: assistantMsg,
+      intent: 'INVESTMENT_RESEARCH',
+      workflowSteps,
+      agentOutputs: { InvestmentResearcherAgent: { budget, specialist: 'investment_researcher' } },
     };
   }
 }

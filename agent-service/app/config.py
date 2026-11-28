@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     groq_timeout_seconds: float = Field(default=30.0, alias="GROQ_TIMEOUT_SECONDS")
     groq_max_retries: int = Field(default=3, alias="GROQ_MAX_RETRIES")
 
+    # Tavily Search API (used by Investment Researcher agent)
+    tavily_api_key: str = Field(default="", alias="TAVILY_API_KEY")
+
     # Caps and concurrency
     max_tool_steps: int = Field(default=6, alias="MAX_TOOL_STEPS")
     max_request_tokens: int = Field(default=8192, alias="MAX_REQUEST_TOKENS")

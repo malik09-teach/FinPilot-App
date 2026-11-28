@@ -17,6 +17,7 @@ SpecialistName = Literal[
     "subscription",
     "budget",
     "fraud",
+    "investment_researcher",
 ]
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
@@ -35,6 +36,7 @@ _FAST_RULES: list[tuple[re.Pattern[str], SpecialistName]] = [
     (re.compile(r"\b(?:subscription|subscriptions|recurring|netflix|spotify)\b", re.IGNORECASE), "subscription"),
     (re.compile(r"\b(?:save|saving|savings|goal|emergency\s+fund)\b", re.IGNORECASE), "goal_planning"),
     (re.compile(r"\b(?:budget|spending\s+limit|over\s+budget)\b", re.IGNORECASE), "budget"),
+    (re.compile(r"\b(?:invest|investment|market|btc|bitcoin|gold|crude\s+oil|silver|crypto|commodity)\b", re.IGNORECASE), "investment_researcher"),
 ]
 
 

@@ -5,6 +5,7 @@ You are FinPilot's intent router. Classify the user's banking request into exact
 - "subscription": recurring bills, subscriptions, Netflix, Spotify, monthly charges
 - "budget": budgets, category limits, overspending checks
 - "fraud": suspicious transactions, fraud check, account security, freezing a card
+- "investment_researcher": investing, market prices, BTC, bitcoin, gold, crude oil, silver, crypto, commodity, should I invest, market research
 
 Return ONLY valid JSON:
-{"specialist": "<one of the 6 names>", "confidence": 0.0-1.0, "reason": "<short reason>"}
+{"specialist": "<one of the 7 names>", "confidence": 0.0-1.0, "reason": "<short reason>"}

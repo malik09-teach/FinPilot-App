@@ -7,6 +7,7 @@ from app.agents.budget import BudgetAgent
 from app.agents.financial_analyst import FinancialAnalystAgent
 from app.agents.fraud import FraudAgent
 from app.agents.goal_planning import GoalPlanningAgent
+from app.agents.investment_researcher import InvestmentResearcherAgent
 from app.agents.subscription import SubscriptionAgent
 from app.agents.transaction import TransactionAgent
 from app.config import Settings
@@ -63,6 +64,9 @@ class AgentOrchestrator:
                 llm=llm, manifest=manifest, executor=executor, settings=settings
             ),
             "fraud": FraudAgent(
+                llm=llm, manifest=manifest, executor=executor, settings=settings
+            ),
+            "investment_researcher": InvestmentResearcherAgent(
                 llm=llm, manifest=manifest, executor=executor, settings=settings
             ),
         }
